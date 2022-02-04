@@ -20,9 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # 👇 is directly connected with production branch
-      API_URL_PRODUCTION: ApiUrlProduction
+      API_URL_PRODUCTION: https://ApiUrlProduction
       # 👇 is directly connected with main
-      API_URL_STAGING: ApiUrlStaging
+      API_URL_STAGING: https://ApiUrlStaging
       VITE_API_URL: ''
 
     steps:
@@ -46,7 +46,7 @@ jobs:
 
       - name: Build, Test
         run: |
-          echo "build & test for : url - ${{ env.VITE_API_URL }}"
+          echo "build & test for : VITE_API_URL='${{ env.VITE_API_URL }}'"
 
       # @todo resolve deployment target based on current branch
 
