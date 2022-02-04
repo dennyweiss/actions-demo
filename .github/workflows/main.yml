@@ -15,8 +15,8 @@ on:
 
 jobs:
 
-  build:
-
+  check_build_test:
+    name: Check, build & test artifact
     runs-on: ubuntu-latest
     env:
       # 👇 is directly connected with production branch
@@ -62,18 +62,40 @@ jobs:
       - name: Build, Test
         run: |
           echo "build & test for : VITE_API_URL='${{ env.VITE_API_URL }}'"
+          sleep 10
           ./shell_script.sh
+          if [[ ! -d dist ]]; then
+            mkdir -p dist
+          fi
+          echo "VITE_API_URL: '${VITE_API_URL}'" > dist/artifact.txt
         env:
           SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
       # @todo yarn test
 
       # when push instead of merge
-      - name: Deploy artifact
+      - name: Upload UI build artifact
         if: github.event_name == 'push'
-        run: |
-          echo 'deploy artifact'
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist/
+          retention-days: 30
 
       # @todo store artifact
       # @todo deploy artifact
 
-      # I go on and on
+  deployment:
+    name: Deploy artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download UI build artifact
+        if: github.event_name == 'push'
+        uses: actions/download-artifact@v2
+        with:
+          name: dist
+          path: dist/
+
+      - name: Deploy artifact
+        if: github.event_name == 'push'
+        run: |
+          cat dist/artifact.txt
