@@ -47,6 +47,9 @@ jobs:
       - name: Build, Test
         run: |
           echo "build & test for : VITE_API_URL='${{ env.VITE_API_URL }}'"
+          ./shell_script.sh
+        env:
+          SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
 
       # @todo resolve deployment target based on current branch
 
