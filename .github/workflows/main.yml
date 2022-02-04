@@ -7,8 +7,8 @@ on:
   push:
     branches: [ main, production ]
 
-  #pull_request:
-  #  branches: [ main, production ]
+  pull_request:
+    branches: [ main, production ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -49,6 +49,10 @@ jobs:
           fi
           
           echo "VITE_API_URL=${resolves_url}" >> $GITHUB_ENV
+
+      - name: github event_name ?
+        run: |
+          echo 'event_name ${{github.event_name}}'
 
       # step one
       # @todo yarn install
