@@ -1,0 +1,56 @@
+# Action that is able to actually release an artifact to an environment
+name: Build & Release
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main, production ]
+
+  #pull_request:
+  #  branches: [ main, production ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+    env:
+      # 👇 is directly connected with production branch
+      API_URL_PRODUCTION: ApiUrlProduction
+      # 👇 is directly connected with main
+      API_URL_STAGING: ApiUrlStaging
+      VITE_API_URL: ''
+
+    steps:
+      - name: Get branch names
+        id: branch-name
+        uses: tj-actions/branch-names@v5.1
+
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14.18.2'
+
+      - name: Resolve api url for staging environment
+        if: steps.branch-name.outputs.current_branch == 'main'
+        run: echo "VITE_API_URL=${API_URL_STAGING}" >> $GITHUB_ENV
+
+      - name: Resolve api url for production environment
+        if: steps.branch-name.outputs.current_branch == 'production'
+        run: echo "VITE_API_URL=${API_URL_STAGING}" >> $GITHUB_ENV
+
+      - name: Build, Test
+        run: |
+          echo "build & test for : url - ${VITE_API_URL}"
+
+      # @todo resolve deployment target based on current branch
+
+      - name: Deploy artifact
+        if: github.event_name == 'push'
+        run: |
+          echo 'deploy artifact'
