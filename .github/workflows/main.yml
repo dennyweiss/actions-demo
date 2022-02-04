@@ -7,8 +7,8 @@ on:
   push:
     branches: [ main, production ]
 
-  #pull_request:
-  #  branches: [ main, production ]
+  pull_request:
+    branches: [ main, production ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -41,15 +41,18 @@ jobs:
           resolves_url=''
           
           if [[ ${{ steps.branch-name.outputs.current_branch }} == 'main' ]]; then
-            resolves_url=${{ env.API_URL_STAGING }}
+            resolves_url='${{ env.API_URL_STAGING }}'
           fi
 
           if [[ ${{ steps.branch-name.outputs.current_branch }} == 'production' ]]; then
-            resolves_url=${{ env.API_URL_PRODUCTION }}
+            resolves_url='${{ env.API_URL_PRODUCTION }}'
           fi
           
           echo "VITE_API_URL=${resolves_url}" >> $GITHUB_ENV
 
+      - name: github event_name ?
+        run: |
+          echo 'event_name ${{github.event_name}}'
 
       # step one
       # @todo yarn install
@@ -69,6 +72,8 @@ jobs:
         if: github.event_name == 'push'
         run: |
           echo 'deploy artifact'
+
       # @todo store artifact
       # @todo deploy artifact
 
+      # let's make a whole run
