@@ -41,15 +41,14 @@ jobs:
           resolves_url=''
           
           if [[ ${{ steps.branch-name.outputs.current_branch }} == 'main' ]]; then
-            resolves_url=${{ env.API_URL_STAGING }}
+            resolves_url='${{ env.API_URL_STAGING }}'
           fi
 
           if [[ ${{ steps.branch-name.outputs.current_branch }} == 'production' ]]; then
-            resolves_url=${{ env.API_URL_PRODUCTION }}
+            resolves_url='${{ env.API_URL_PRODUCTION }}'
           fi
           
           echo "VITE_API_URL=${resolves_url}" >> $GITHUB_ENV
-
 
       # step one
       # @todo yarn install
