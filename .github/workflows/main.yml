@@ -72,6 +72,6 @@ jobs:
         if: github.event_name == 'push'
         run: |
           echo 'deploy artifact'
+
       # @todo store artifact
       # @todo deploy artifact
-
