@@ -38,15 +38,15 @@ jobs:
 
       - name: Resolve api url for staging environment
         if: steps.branch-name.outputs.current_branch == 'main'
-        run: echo "VITE_API_URL=${API_URL_STAGING}" >> $GITHUB_ENV
+        run: echo "VITE_API_URL=${{ env.API_URL_STAGING }}" >> $GITHUB_ENV
 
       - name: Resolve api url for production environment
         if: steps.branch-name.outputs.current_branch == 'production'
-        run: echo "VITE_API_URL=${API_URL_STAGING}" >> $GITHUB_ENV
+        run: echo "VITE_API_URL=${{ API_URL_STAGING }}" >> $GITHUB_ENV
 
       - name: Build, Test
         run: |
-          echo "build & test for : url - ${VITE_API_URL}"
+          echo "build & test for : url - ${{ env.VITE_API_URL }}"
 
       # @todo resolve deployment target based on current branch
 
