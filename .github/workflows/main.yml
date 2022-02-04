@@ -57,11 +57,11 @@ jobs:
           SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
       # @todo yarn test
 
+      # when push instead of merge
       - name: Deploy artifact
         if: github.event_name == 'push'
         run: |
           echo 'deploy artifact'
-      # when push instead of merge
       # @todo store artifact
       # @todo deploy artifact
 
