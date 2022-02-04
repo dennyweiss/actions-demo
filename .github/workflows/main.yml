@@ -44,16 +44,24 @@ jobs:
         if: steps.branch-name.outputs.current_branch == 'production'
         run: echo "VITE_API_URL=${{ env.API_URL_STAGING }}" >> $GITHUB_ENV
 
+      # step one
+      # @todo yarn install
+      # @todo yarn code:style
+      # @todo yarn code:analyse
+      # @todo yarn build
       - name: Build, Test
         run: |
           echo "build & test for : VITE_API_URL='${{ env.VITE_API_URL }}'"
           ./shell_script.sh
         env:
           SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
-
-      # @todo resolve deployment target based on current branch
+      # @todo yarn test
 
       - name: Deploy artifact
         if: github.event_name == 'push'
         run: |
           echo 'deploy artifact'
+      # when push instead of merge
+      # @todo store artifact
+      # @todo deploy artifact
+
