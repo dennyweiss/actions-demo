@@ -36,13 +36,20 @@ jobs:
         with:
           node-version: '14.18.2'
 
-      - name: Resolve api url for staging environment
-        if: steps.branch-name.outputs.current_branch == 'main'
-        run: echo "VITE_API_URL=${{ env.API_URL_STAGING }}" >> $GITHUB_ENV
+      - name: Resolve api url for environment
+        run: |
+          resolves_url=''
+          
+          if [[ ${{ steps.branch-name.outputs.current_branch }} == 'main' ]]; then
+            resolves_url=${{ env.API_URL_STAGING }}
+          fi
 
-      - name: Resolve api url for production environment
-        if: steps.branch-name.outputs.current_branch == 'production'
-        run: echo "VITE_API_URL=${{ env.API_URL_STAGING }}" >> $GITHUB_ENV
+          if [[ ${{ steps.branch-name.outputs.current_branch }} == 'production' ]]; then
+            resolves_url=${{ env.API_URL_PRODUCTION }}
+          fi
+          
+          echo "VITE_API_URL=${resolves_url}" >> $GITHUB_ENV
+
 
       # step one
       # @todo yarn install
