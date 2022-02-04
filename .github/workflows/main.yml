@@ -81,12 +81,10 @@ jobs:
           path: dist/
           retention-days: 30
 
-      # @todo store artifact
-      # @todo deploy artifact
-
   deployment:
     name: Deploy artifact
     runs-on: ubuntu-latest
+    needs: [check_build_test]
     steps:
       - name: Download UI build artifact
         if: github.event_name == 'push'
