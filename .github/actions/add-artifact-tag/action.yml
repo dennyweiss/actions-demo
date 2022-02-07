@@ -1,0 +1,43 @@
+name: "Add artifact tag"
+description: "Adds an artifact tag composed of environment name and datetime string"
+inputs:
+  github-token:
+    required: true
+    description: "The github token to modify the repository"
+  environment-name:
+    required: true
+    description: "The environment that belongs to tag"
+  datetime:
+    required: true
+    description: "The datetime string that's part of the tag"
+runs:
+  using: "composite"
+  steps:
+    - name: Create artifact tag name
+      id: create_artifact_tag_name
+      shell: bash
+      run: |
+        echo "::set-output name=artifact_tag_name::${{ input.environment-name }}-${{ input.datetime }}"
+
+    - name: Attach artifact tag
+      uses: actions/github-script@v3
+      with:
+        github-token: ${{ input.github-token }}
+        script: |
+          try {
+              await github.git.deleteRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: "tags/${{ steps.create_artifact_tag_name.outputs.artifact_tag_name }}"
+              })
+          } catch (e) {
+            console.log("The '${{ steps.create_artifact_tag_name.outputs.artifact_tag_name }}' tag doesn't exist yet: " + e)
+          }
+          await github.git.createRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: "refs/tags/${{ steps.create_artifact_tag_name.outputs.artifact_tag_name }}",
+            sha: context.sha
+          })        
+
+
