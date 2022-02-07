@@ -27,8 +27,8 @@ jobs:
     environment:
       name: staging
     env:
-      VITE_API_URL: ${{ steps.environment_variables.outputs.api_url }}
-      APP_URL: ${{ steps.environment_variables.outputs.app_url }}
+      VITE_API_URL: ${{ env.API_URL_STAGING }}
+      APP_URL: ${{ env.APP_URL_STAGING }}
 
     steps:
       - name: Prepare variables
@@ -91,8 +91,8 @@ jobs:
     if: github.event_name == 'push'
 
     env:
-      VITE_API_URL: ${{ steps.environment_variables.outputs.api_url }}
-      APP_URL: ${{ steps.environment_variables.outputs.app_url }}
+      VITE_API_URL: ${{ env.API_URL_STAGING }}
+      APP_URL: ${{ env.APP_URL_STAGING }}
 
     steps:
       - name: Prepare variables
