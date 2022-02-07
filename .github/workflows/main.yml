@@ -1,9 +1,7 @@
 # Action that is able to actually release an artifact to an environment
 name: space control panel - UI
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the main branch
   push:
     branches: [ main ]
 
