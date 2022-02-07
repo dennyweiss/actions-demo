@@ -131,7 +131,7 @@ jobs:
           retention-days: 30
 
       - name: Tag artifact
-        uses: .github/actions/add-artifact-tag/action.yml
+        uses: ./.github/actions/add-artifact-tag/action.yml
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           environment-name: ${{ env.TAG_NAME_STAGING }}
