@@ -19,12 +19,16 @@ jobs:
     name: Check, build & test artifact
     environment:
       name: staging
-      url: ${{ secrets.APP_URL }}
+      url: ${{ steps.staging_url.outputs.url }}
     runs-on: ubuntu-latest
     env:
       VITE_API_URL: ${{ secrets.API_URL }}
 
     steps:
+      - name: Define environment url
+        id: staging_url
+        run: |
+          echo "::set-output name=url::${{ secrets.APP_URL }}"
       - uses: actions/checkout@v2
 
       - name: Define node version
@@ -73,11 +77,15 @@ jobs:
     name: deploy to staging
     environment:
       name: staging
-      url: ${{ secrets.APP_URL }}
+      url: ${{ steps.staging_url.outputs.url }}
     runs-on: ubuntu-latest
     needs: [check_build_test]
     if: github.event_name == 'push'
     steps:
+      - name: Define environment url
+        id: staging_url
+        run: |
+          echo "::set-output name=url::${{ secrets.APP_URL }}"
       - name: Download UI build artifact
         uses: actions/download-artifact@v2
         with:
@@ -88,62 +96,62 @@ jobs:
         run: |
           cat dist/artifact.txt
 
-  deployment_production:
-    name: deploy to production
-    environment:
-      name: production
-      url: ${{ secrets.APP_URL }}
-    runs-on: ubuntu-latest
-    needs: [check_build_test, deploy_staging]
-    if: github.event_name == 'push'
-    env:
-      VITE_API_URL: ${{ secrets.API_URL }}
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Define node version
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14.18.2'
-
-      - name: debug variables
-        run: |
-          echo "event_name:     '${{github.event_name}}"
-          echo "api url:        '${{ secrets.API_URL }}'"
-          echo "app url:        '${{ secrets.APP_URL }}'"
-          echo "GITHUB_RUN_ID:  '$GITHUB_RUN_ID'"
-          echo "GITHUB_SHA:     '$GITHUB_SHA'"
-
-      # step one
-      - name: Build, Test
-        run: |
-          echo "build & test for : VITE_API_URL='${{ env.VITE_API_URL }}'"
-          sleep 10
-          
-          echo 'yarn install'
-          echo 'yarn code:style'
-          echo 'yarn code:analyse'
-          echo 'yarn build'
-          echo 'yarn test'
-          
-          ./shell_script.sh
-          if [[ ! -d dist ]]; then
-            mkdir -p dist
-          fi
-          echo "VITE_API_URL: '${VITE_API_URL}'" > dist/artifact.txt
-        env:
-          SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
-
-      # when push instead of merge
-      - name: Upload UI build artifact
-        if: github.event_name == 'push'
-        uses: actions/upload-artifact@v2
-        with:
-          name: dist
-          path: dist/
-          retention-days: 30
-
-      - name: Deploy artifact
-        run: |
-          cat dist/artifact.txt
+#  deployment_production:
+#    name: deploy to production
+#    environment:
+#      name: production
+#      url: ${{ secrets.APP_URL }}
+#    runs-on: ubuntu-latest
+#    needs: [check_build_test, deploy_staging]
+#    if: github.event_name == 'push'
+#    env:
+#      VITE_API_URL: ${{ secrets.API_URL }}
+#
+#    steps:
+#      - uses: actions/checkout@v2
+#
+#      - name: Define node version
+#        uses: actions/setup-node@v2
+#        with:
+#          node-version: '14.18.2'
+#
+#      - name: debug variables
+#        run: |
+#          echo "event_name:     '${{github.event_name}}"
+#          echo "api url:        '${{ secrets.API_URL }}'"
+#          echo "app url:        '${{ secrets.APP_URL }}'"
+#          echo "GITHUB_RUN_ID:  '$GITHUB_RUN_ID'"
+#          echo "GITHUB_SHA:     '$GITHUB_SHA'"
+#
+#      # step one
+#      - name: Build, Test
+#        run: |
+#          echo "build & test for : VITE_API_URL='${{ env.VITE_API_URL }}'"
+#          sleep 10
+#
+#          echo 'yarn install'
+#          echo 'yarn code:style'
+#          echo 'yarn code:analyse'
+#          echo 'yarn build'
+#          echo 'yarn test'
+#
+#          ./shell_script.sh
+#          if [[ ! -d dist ]]; then
+#            mkdir -p dist
+#          fi
+#          echo "VITE_API_URL: '${VITE_API_URL}'" > dist/artifact.txt
+#        env:
+#          SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
+#
+#      # when push instead of merge
+#      - name: Upload UI build artifact
+#        if: github.event_name == 'push'
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: dist
+#          path: dist/
+#          retention-days: 30
+#
+#      - name: Deploy artifact
+#        run: |
+#          cat dist/artifact.txt
