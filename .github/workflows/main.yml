@@ -23,11 +23,12 @@ jobs:
     name: Pre merge check
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+
       - name: Prepare variables
         id: environment_variables
         run: |
           echo "VITE_API_URL=${{ env.API_URL_STAGING }}" >> $GITHUB_ENV
-      - uses: actions/checkout@v2
 
       - name: Define node version
         uses: actions/setup-node@v2
@@ -68,7 +69,7 @@ jobs:
         with:
           name: ui_artifact_pre_merge_check
           path: dist/
-          retention-days: 30
+          retention-days: 7
 
   build_and_deploy_staging:
     name: Build & Deploy to staging
@@ -79,6 +80,8 @@ jobs:
       name: staging
       url: ${{ steps.environment_variables.outputs.app_url }}
     steps:
+      - uses: actions/checkout@v2
+
       - name: Prepare variables
         id: environment_variables
         env:
@@ -107,7 +110,6 @@ jobs:
       - name: Build, Test
         run: |
           echo "build & test for : VITE_API_URL='${{ env.VITE_API_URL }}'"
-          sleep 10
           
           echo 'yarn install'
           echo 'yarn code:style'
@@ -150,6 +152,8 @@ jobs:
       name: production
       url: ${{ steps.environment_variables.outputs.app_url }}
     steps:
+      - uses: actions/checkout@v2
+
       - name: Prepare variables
         id: environment_variables
         run: |
@@ -174,7 +178,6 @@ jobs:
       - name: Build, Test
         run: |
           echo "build & test for : VITE_API_URL='${{ env.VITE_API_URL }}'"
-          sleep 10
           
           echo 'yarn install'
           echo 'yarn code:style'
