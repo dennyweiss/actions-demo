@@ -84,7 +84,7 @@ jobs:
       name: staging
       url: ${{ needs.check_build_staging.outputs.app_url }}
     runs-on: ubuntu-latest
-    needs: [check_build_test]
+    needs: [check_build_staging]
     if: github.event_name == 'push'
 
     steps:
