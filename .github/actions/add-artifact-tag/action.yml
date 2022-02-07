@@ -17,12 +17,12 @@ runs:
       id: create_artifact_tag_name
       shell: bash
       run: |
-        echo "::set-output name=artifact_tag_name::${{ input.environment-name }}-${{ input.datetime }}"
+        echo "::set-output name=artifact_tag_name::${{ inputs.environment-name }}-${{ inputs.datetime }}"
 
     - name: Attach artifact tag
       uses: actions/github-script@v3
       with:
-        github-token: ${{ input.github-token }}
+        github-token: ${{ inputs.github-token }}
         script: |
           try {
               await github.git.deleteRef({
