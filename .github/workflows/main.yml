@@ -17,18 +17,11 @@ jobs:
 
   check_build_test:
     name: Check, build & test artifact
-    environment:
-      name: staging
-      url: ${{ steps.staging_url.outputs.url }}
     runs-on: ubuntu-latest
     env:
       VITE_API_URL: ${{ secrets.API_URL }}
 
     steps:
-      - name: Define environment url
-        id: staging_url
-        run: |
-          echo "::set-output name=url::${{ secrets.APP_URL }}"
       - uses: actions/checkout@v2
 
       - name: Define node version
