@@ -24,8 +24,6 @@ jobs:
   check_build_test:
     name: Check, build & test artifact
     runs-on: ubuntu-latest
-    environment:
-      name: staging
     steps:
       - name: Prepare variables
         id: environment_variables
