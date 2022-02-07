@@ -89,7 +89,7 @@ jobs:
         run: |
           echo "::set-output name=api_url::${{ env.API_URL_STAGING }}"
           echo "::set-output name=app_url::${{ env.APP_URL_STAGING }}"
-          echo "::set-output name=artifact_tag_name::${{ env.ENVIRONMENT_NAME }}-$(date "+%Y%m%d%H%M%S")"
+          echo "::set-output name=artifact_datetime::$(date "+%Y%m%d%H%M%S")"
           echo "VITE_API_URL=${{ env.API_URL_STAGING }}" >> $GITHUB_ENV
 
       - name: Define node version
@@ -135,7 +135,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           environment-name: ${{ env.TAG_NAME_STAGING }}
-          datetime: ${{ steps.environment_variables.outputs.artifact_tag_name }}
+          datetime: ${{ steps.environment_variables.outputs.artifact_datetime }}
 
       - name: Deploy artifact
         run: |
