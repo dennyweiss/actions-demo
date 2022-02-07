@@ -5,10 +5,10 @@ name: Check, Build, Test & Deploy UI
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ main, production ]
+    branches: [ main ]
 
   pull_request:
-    branches: [ main, production ]
+    branches: [ main ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -19,17 +19,9 @@ jobs:
     name: Check, build & test artifact
     runs-on: ubuntu-latest
     env:
-      # 👇 is directly connected with production branch
-      API_URL_PRODUCTION: https://ApiUrlProduction
-      # 👇 is directly connected with main
-      API_URL_STAGING: https://ApiUrlStaging
-      VITE_API_URL: ''
+      VITE_API_URL: ${{ secrets.API_URL }}
 
     steps:
-      - name: Get branch names
-        id: branch-name
-        uses: tj-actions/branch-names@v5.1
-
       - uses: actions/checkout@v2
 
       - name: Define node version
@@ -37,34 +29,26 @@ jobs:
         with:
           node-version: '14.18.2'
 
-      - name: Resolve api url for environment
+      - name: debug variables
         run: |
-          resolves_url=''
-          
-          if [[ ${{ steps.branch-name.outputs.current_branch }} == 'main' ]]; then
-            resolves_url='${{ env.API_URL_STAGING }}'
-          fi
-
-          if [[ ${{ steps.branch-name.outputs.current_branch }} == 'production' ]]; then
-            resolves_url='${{ env.API_URL_PRODUCTION }}'
-          fi
-          
-          echo "VITE_API_URL=${resolves_url}" >> $GITHUB_ENV
-
-      - name: github event_name ?
-        run: |
-          echo 'event_name ${{github.event_name}}'
+          echo "event_name:     '${{github.event_name}}"
+          echo "api url:        '${{ secrets.API_URL }}'"
+          echo "app url:        '${{ secrets.APP_URL }}'"
+          echo "GITHUB_RUN_ID:  '$GITHUB_RUN_ID'"
+          echo "GITHUB_SHA:     '$GITHUB_SHA'"
 
       # step one
-      # @todo yarn install
-      # @todo yarn code:style
-      # @todo yarn code:analyse
-      # @todo yarn build
-
       - name: Build, Test
         run: |
           echo "build & test for : VITE_API_URL='${{ env.VITE_API_URL }}'"
           sleep 10
+          
+          echo 'yarn install'
+          echo 'yarn code:style'
+          echo 'yarn code:analyse'
+          echo 'yarn build'
+          echo 'yarn test'
+          
           ./shell_script.sh
           if [[ ! -d dist ]]; then
             mkdir -p dist
@@ -72,7 +56,6 @@ jobs:
           echo "VITE_API_URL: '${VITE_API_URL}'" > dist/artifact.txt
         env:
           SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
-      # @todo yarn test
 
       # when push instead of merge
       - name: Upload UI build artifact
@@ -83,12 +66,19 @@ jobs:
           path: dist/
           retention-days: 30
 
-  deployment:
-    name: Deploy artifact
+  deployment_staging:
+    name: deploy to staging
+    environment:
+      name: staging
+      url: ${{ steps.staging_url.outputs.url }}
     runs-on: ubuntu-latest
     needs: [check_build_test]
     if: github.event_name == 'push'
     steps:
+      - name: Define environment url
+        id: staging_url
+        run: |
+          echo "::set-output name=url::${{ secrets.APP_URL }}"
       - name: Download UI build artifact
         uses: actions/download-artifact@v2
         with:
@@ -98,3 +88,63 @@ jobs:
       - name: Deploy artifact
         run: |
           cat dist/artifact.txt
+
+#  deployment_production:
+#    name: deploy to production
+#    environment:
+#      name: production
+#      url: ${{ secrets.APP_URL }}
+#    runs-on: ubuntu-latest
+#    needs: [check_build_test, deploy_staging]
+#    if: github.event_name == 'push'
+#    env:
+#      VITE_API_URL: ${{ secrets.API_URL }}
+#
+#    steps:
+#      - uses: actions/checkout@v2
+#
+#      - name: Define node version
+#        uses: actions/setup-node@v2
+#        with:
+#          node-version: '14.18.2'
+#
+#      - name: debug variables
+#        run: |
+#          echo "event_name:     '${{github.event_name}}"
+#          echo "api url:        '${{ secrets.API_URL }}'"
+#          echo "app url:        '${{ secrets.APP_URL }}'"
+#          echo "GITHUB_RUN_ID:  '$GITHUB_RUN_ID'"
+#          echo "GITHUB_SHA:     '$GITHUB_SHA'"
+#
+#      # step one
+#      - name: Build, Test
+#        run: |
+#          echo "build & test for : VITE_API_URL='${{ env.VITE_API_URL }}'"
+#          sleep 10
+#
+#          echo 'yarn install'
+#          echo 'yarn code:style'
+#          echo 'yarn code:analyse'
+#          echo 'yarn build'
+#          echo 'yarn test'
+#
+#          ./shell_script.sh
+#          if [[ ! -d dist ]]; then
+#            mkdir -p dist
+#          fi
+#          echo "VITE_API_URL: '${VITE_API_URL}'" > dist/artifact.txt
+#        env:
+#          SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
+#
+#      # when push instead of merge
+#      - name: Upload UI build artifact
+#        if: github.event_name == 'push'
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: dist
+#          path: dist/
+#          retention-days: 30
+#
+#      - name: Deploy artifact
+#        run: |
+#          cat dist/artifact.txt
