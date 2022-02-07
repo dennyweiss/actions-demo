@@ -12,8 +12,11 @@ on:
 env:
   API_URL_PRODUCTION: https://api.ufostart.com
   APP_URL_PRODUCTION: https://space-control-center.ufostart.com
+  TAG_NAME_PRODUCTION: production
+
   API_URL_STAGING: https://staging.api.ufostart.com
   APP_URL_STAGING: https://staging.space-control-center.ufostart.com
+  TAG_NAME_STAGING: staging
 
 jobs:
   pre_merge_check:
@@ -117,12 +120,39 @@ jobs:
           SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
 
       - name: Upload UI build artifact
-        if: github.event_name == 'push'
         uses: actions/upload-artifact@v2
         with:
           name: ui_artifact_staging
           path: dist/
           retention-days: 30
+
+      - name: Create artifact tag name
+        id: create_artifact_tag_name
+        env:
+          ENVIRONMENT_NAME: ${{ env.TAG_NAME_STAGING }}
+        run: |
+          echo "::set-output name=artifact_tag_name::${{ env.ENVIRONMENT_NAME }}-$(date "+%Y%m%d%H%M%S")"
+
+      - name: Attach artifact tag
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            try {
+                await github.git.deleteRef({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: "tags/${{ steps.create_artifact_tag_name.outputs.artifact_tag_name }}"
+                })
+            } catch (e) {
+              console.log("The '${{ steps.create_artifact_tag_name.outputs.artifact_tag_name }}' tag doesn't exist yet: " + e)
+            }
+            await github.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "refs/tags/${{ steps.create_artifact_tag_name.outputs.artifact_tag_name }}",
+              sha: context.sha
+            })        
 
       - name: Deploy artifact
         run: |
@@ -178,7 +208,6 @@ jobs:
           SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
 
       - name: Upload UI build artifact
-        if: github.event_name == 'push'
         uses: actions/upload-artifact@v2
         with:
           name: ui_artifact_production
