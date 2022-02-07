@@ -92,8 +92,6 @@ jobs:
           echo "::set-output name=artifact_tag_name::${{ env.ENVIRONMENT_NAME }}-$(date "+%Y%m%d%H%M%S")"
           echo "VITE_API_URL=${{ env.API_URL_STAGING }}" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v2
-
       - name: Define node version
         uses: actions/setup-node@v2
         with:
@@ -133,7 +131,7 @@ jobs:
           retention-days: 30
 
       - name: Tag artifact
-        uses: ./.github/actions/add-artifact-tag/action.yml
+        uses: ./.github/actions/add-artifact-tag
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           environment-name: ${{ env.TAG_NAME_STAGING }}
@@ -160,7 +158,6 @@ jobs:
           echo "::set-output name=api_url::${{ env.API_URL_PRODUCTION }}"
           echo "::set-output name=app_url::${{ env.APP_URL_PRODUCTION }}"
           echo "VITE_API_URL=${{ env.API_URL_PRODUCTION }}" >> $GITHUB_ENV
-      - uses: actions/checkout@v2
 
       - name: Define node version
         uses: actions/setup-node@v2
