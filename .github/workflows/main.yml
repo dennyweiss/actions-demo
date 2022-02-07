@@ -26,10 +26,6 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: staging
-    env:
-      VITE_API_URL: ${{ env.API_URL_STAGING }}
-      APP_URL: ${{ env.APP_URL_STAGING }}
-
     steps:
       - name: Prepare variables
         id: environment_variables
