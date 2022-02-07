@@ -71,7 +71,7 @@ jobs:
         if: github.event_name == 'push'
         uses: actions/upload-artifact@v2
         with:
-          name: dist
+          name: ui_artifact_production
           path: dist/
           retention-days: 30
     outputs:
@@ -79,7 +79,7 @@ jobs:
       app_url: ${{ steps.environment_variables.outputs.app_url }}
 
   deployment_staging:
-    name: deploy to staging
+    name: Deploy to staging
     environment:
       name: staging
       url: ${{ needs.check_build_staging.outputs.app_url }}
@@ -91,7 +91,7 @@ jobs:
       - name: Download UI build artifact
         uses: actions/download-artifact@v2
         with:
-          name: dist
+          name: ui_artifact_staging
           path: dist
 
       - name: Deploy artifact
@@ -99,7 +99,7 @@ jobs:
           cat dist/artifact.txt
 
   check_build_test_deploy_production:
-    name: Check, build, test & deploy to producton
+    name: Deploy to production
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     needs: [check_build_staging,deployment_staging]
@@ -153,7 +153,7 @@ jobs:
         if: github.event_name == 'push'
         uses: actions/upload-artifact@v2
         with:
-          name: dist
+          name: ui_artifact_production
           path: dist/
           retention-days: 30
 
