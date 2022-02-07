@@ -131,7 +131,7 @@ jobs:
         env:
           ENVIRONMENT_NAME: ${{ env.TAG_NAME_STAGING }}
         run: |
-          echo "::set-output name=artifact_tag_name::${{ENVIRONMENT_NAME}}-$(date "+%Y%m%d%H%M%S")"
+          echo "::set-output name=artifact_tag_name::${{ env.ENVIRONMENT_NAME }}-$(date "+%Y%m%d%H%M%S")"
 
       - name: Attach artifact tag
         uses: actions/github-script@v3
