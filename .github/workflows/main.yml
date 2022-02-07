@@ -81,10 +81,14 @@ jobs:
     steps:
       - name: Prepare variables
         id: environment_variables
+        env:
+          ENVIRONMENT_NAME: ${{ env.TAG_NAME_STAGING }}
         run: |
           echo "::set-output name=api_url::${{ env.API_URL_STAGING }}"
           echo "::set-output name=app_url::${{ env.APP_URL_STAGING }}"
+          echo "::set-output name=artifact_tag_name::${{ env.ENVIRONMENT_NAME }}-$(date "+%Y%m%d%H%M%S")"
           echo "VITE_API_URL=${{ env.API_URL_STAGING }}" >> $GITHUB_ENV
+
       - uses: actions/checkout@v2
 
       - name: Define node version
@@ -126,33 +130,12 @@ jobs:
           path: dist/
           retention-days: 30
 
-      - name: Create artifact tag name
-        id: create_artifact_tag_name
-        env:
-          ENVIRONMENT_NAME: ${{ env.TAG_NAME_STAGING }}
-        run: |
-          echo "::set-output name=artifact_tag_name::${{ env.ENVIRONMENT_NAME }}-$(date "+%Y%m%d%H%M%S")"
-
-      - name: Attach artifact tag
-        uses: actions/github-script@v3
+      - name: Tag artifact
+        uses: .github/actions/add-artifact-tag/action.yml
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          script: |
-            try {
-                await github.git.deleteRef({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  ref: "tags/${{ steps.create_artifact_tag_name.outputs.artifact_tag_name }}"
-                })
-            } catch (e) {
-              console.log("The '${{ steps.create_artifact_tag_name.outputs.artifact_tag_name }}' tag doesn't exist yet: " + e)
-            }
-            await github.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: "refs/tags/${{ steps.create_artifact_tag_name.outputs.artifact_tag_name }}",
-              sha: context.sha
-            })        
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          environment-name: ${{ env.TAG_NAME_STAGING }}
+          datetime: ${{ steps.environment_variables.outputs.artifact_tag_name }}
 
       - name: Deploy artifact
         run: |
