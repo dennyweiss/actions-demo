@@ -84,12 +84,10 @@ jobs:
 
       - name: Prepare variables
         id: environment_variables
-        env:
-          ENVIRONMENT_NAME: ${{ env.TAG_NAME_STAGING }}
         run: |
           echo "::set-output name=api_url::${{ env.API_URL_STAGING }}"
           echo "::set-output name=app_url::${{ env.APP_URL_STAGING }}"
-          echo "::set-output name=artifact_tag_name::${{ env.ENVIRONMENT_NAME }}-$(date "+%Y%m%d%H%M%S")"
+          echo "::set-output name=artifact_datetime::$(date "+%Y%m%d%H%M%S")"
           echo "VITE_API_URL=${{ env.API_URL_STAGING }}" >> $GITHUB_ENV
 
       - name: Define node version
@@ -130,16 +128,17 @@ jobs:
           path: dist/
           retention-days: 30
 
-      - name: Tag artifact
-        uses: ./.github/actions/add-artifact-tag
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          environment-name: ${{ env.TAG_NAME_STAGING }}
-          datetime: ${{ steps.environment_variables.outputs.artifact_tag_name }}
-
       - name: Deploy artifact
         run: |
           cat dist/artifact.txt
+
+      - name: Tag artifact
+        uses: ./.github/actions/add-artifact-tag
+        if: always()
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          environment-name: ${{ env.TAG_NAME_STAGING }}
+          datetime: ${{ steps.environment_variables.outputs.artifact_datetime }}
 
   build_and_deploy_production:
     name: Build & Deploy to production
@@ -157,6 +156,7 @@ jobs:
         run: |
           echo "::set-output name=api_url::${{ env.API_URL_PRODUCTION }}"
           echo "::set-output name=app_url::${{ env.APP_URL_PRODUCTION }}"
+          echo "::set-output name=artifact_datetime::$(date "+%Y%m%d%H%M%S")"
           echo "VITE_API_URL=${{ env.API_URL_PRODUCTION }}" >> $GITHUB_ENV
 
       - name: Define node version
@@ -200,3 +200,11 @@ jobs:
       - name: Deploy artifact
         run: |
           cat dist/artifact.txt
+
+      - name: Tag artifact
+        uses: ./.github/actions/add-artifact-tag
+        if: always()
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          environment-name: ${{ env.TAG_NAME_PRODUCTION }}
+          datetime: ${{ steps.environment_variables.outputs.artifact_datetime }}
