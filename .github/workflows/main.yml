@@ -1,5 +1,5 @@
 # Action that is able to actually release an artifact to an environment
-name: Check, Build, Test & Deploy UI
+name: space control panel - UI
 
 # Controls when the workflow will run
 on:
@@ -75,6 +75,7 @@ jobs:
     name: Build & Deploy to staging
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
+    needs: [pre_merge_check]
     environment:
       name: staging
       url: ${{ steps.environment_variables.outputs.app_url }}
@@ -100,7 +101,6 @@ jobs:
           echo "GITHUB_RUN_ID:  '$GITHUB_RUN_ID'"
           echo "GITHUB_SHA:     '$GITHUB_SHA'"
 
-      # step one
       - name: Build, Test
         run: |
           echo "build & test for : VITE_API_URL='${{ env.VITE_API_URL }}'"
@@ -120,7 +120,6 @@ jobs:
         env:
           SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
 
-      # when push instead of merge
       - name: Upload UI build artifact
         if: github.event_name == 'push'
         uses: actions/upload-artifact@v2
@@ -163,7 +162,6 @@ jobs:
           echo "GITHUB_RUN_ID:  '$GITHUB_RUN_ID'"
           echo "GITHUB_SHA:     '$GITHUB_SHA'"
 
-      # step one
       - name: Build, Test
         run: |
           echo "build & test for : VITE_API_URL='${{ env.VITE_API_URL }}'"
@@ -183,7 +181,6 @@ jobs:
         env:
           SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
 
-      # when push instead of merge
       - name: Upload UI build artifact
         if: github.event_name == 'push'
         uses: actions/upload-artifact@v2
