@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-# a comment
 SHELL_SCRIPT_RESULT_OK=${SHELL_SCRIPT_RESULT_OK:-false}
 
 if [[ "${SHELL_SCRIPT_RESULT_OK}" == 'true' ]]; then
