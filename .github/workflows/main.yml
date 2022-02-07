@@ -27,8 +27,8 @@ jobs:
     environment:
       name: staging
     env:
-      VITE_API_URL: ${{ steps.environment_variables.output.api_url }}
-      APP_URL: ${{ steps.environment_variables.output.app_url }}
+      VITE_API_URL: ${{ steps.environment_variables.outputs.api_url }}
+      APP_URL: ${{ steps.environment_variables.outputs.app_url }}
 
     steps:
       - name: Prepare variables
@@ -85,14 +85,14 @@ jobs:
     name: deploy to staging
     environment:
       name: staging
-      url: ${{ steps.environment_variables.output.app_url }}
+      url: ${{ steps.environment_variables.outputs.app_url }}
     runs-on: ubuntu-latest
     needs: [check_build_test]
     if: github.event_name == 'push'
 
     env:
-      VITE_API_URL: ${{ steps.environment_variables.output.api_url }}
-      APP_URL: ${{ steps.environment_variables.output.app_url }}
+      VITE_API_URL: ${{ steps.environment_variables.outputs.api_url }}
+      APP_URL: ${{ steps.environment_variables.outputs.app_url }}
 
     steps:
       - name: Prepare variables
