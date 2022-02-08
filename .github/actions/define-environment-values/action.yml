@@ -1,0 +1,31 @@
+  name: "Define environment values"
+  description: ""
+
+  inputs:
+    api-url:
+      required: true
+      description: "Api url that should be used by the environment"
+    app-url:
+      required: true
+      description: "App url that should be used by the environment"
+
+  outputs:
+    api-url:
+      description: "api url"
+      value: ${{ steps.prepared_values.outputs.api-url }}
+    app-url:
+      description: "app url"
+      value: ${{ steps.prepared_values.outputs.api-url }}
+    current-datetime:
+      description: "Api"
+      value: ${{ steps.prepared_values.outputs.api-url }}
+
+  runs:
+    using: "composite"
+    steps:
+      - id: prepared_values
+        shell: bash
+        run: |
+          echo "::set-output name=api-url::${{ inputs.api-url }}"
+          echo "::set-output name=app-url::${{ inputs.app-url }}"
+          echo "::set-output name=current-datetime::$(date "+%Y%m%d%H%M%S")"

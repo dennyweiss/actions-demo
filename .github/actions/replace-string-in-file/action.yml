@@ -1,0 +1,19 @@
+  name: "Replace string in file"
+  description: "Replaces a string in file"
+  inputs:
+    filepath:
+      required: true
+      description: "Filepath of file that should be modified"
+    search:
+      required: true
+      description: "String that should be replaced"
+    replacement:
+      required: true
+      description: "String that should replace search"
+  runs:
+    using: "composite"
+    steps:
+      - name: Replace placeholder in file
+        shell: bash
+        run: |
+          gsed -i 's,${{ placeholder }},${{ inputs.api-url }},g' ${{ inputs.filepath }}
