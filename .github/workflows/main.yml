@@ -49,15 +49,15 @@ jobs:
       - name: debug variables
         run: |
           echo "event_name:     '${{github.event_name}}"
-          echo "api url:        '${{ steps.environment_values.outputs.api_url }}'"
-          echo "app url:        '${{ steps.environment_values.outputs.app_url }}'"
+          echo "api url:        '${{ steps.environment_values.outputs.api-url }}'"
+          echo "app url:        '${{ steps.environment_values.outputs.app-url }}'"
           echo "GITHUB_RUN_ID:  '$GITHUB_RUN_ID'"
           echo "GITHUB_SHA:     '$GITHUB_SHA'"
 
       # step one
       - name: Build, Test
         run: |
-          echo "build & test for : apiUrl='${{ steps.environment_values.outputs.api_url }}'"
+          echo "build & test for : apiUrl='${{ steps.environment_values.outputs.api-url }}'"
           
           echo 'yarn install'
           echo 'yarn code:style'
@@ -69,7 +69,7 @@ jobs:
           if [[ ! -d '${{ env.ARTIFACT_TARGET_FILEPATH }}' ]]; then
             mkdir -p '${{ env.ARTIFACT_TARGET_FILEPATH }}'
           fi
-          echo "apiUrl: '${{ steps.environment_values.outputs.api_url }}'" > dist/artifact.txt
+          echo "apiUrl: '${{ steps.environment_values.outputs.api-url }}'" > dist/artifact.txt
         env:
           SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
 
@@ -87,7 +87,7 @@ jobs:
     needs: [build_and_test]
     environment:
       name: staging
-      url: ${{ steps.environment_values.outputs.app_url }}
+      url: ${{ steps.environment_values.outputs.app-url }}
     steps:
       - uses: actions/checkout@v2
 
@@ -109,7 +109,7 @@ jobs:
         with:
           filepath: ${{ env.DEFAULT_API_URL_PLACEHOLDER_FILEPATH }}
           search: ${{ env.DEFAULT_API_URL_PLACEHOLDER }}
-          replacement: ${{ steps.environment_values.outputs.api_url }}
+          replacement: ${{ steps.environment_values.outputs.api-url }}
 
       - name: Deploy artifact
         run: |
@@ -130,7 +130,7 @@ jobs:
     needs: [build_and_test,deploy_to_staging]
     environment:
       name: production
-      url: ${{ steps.environment_values.outputs.app_url }}
+      url: ${{ steps.environment_values.outputs.app-url }}
     steps:
       - uses: actions/checkout@v2
 
@@ -152,7 +152,7 @@ jobs:
         with:
           filepath: ${{ env.DEFAULT_API_URL_PLACEHOLDER_FILEPATH }}
           search: ${{ env.DEFAULT_API_URL_PLACEHOLDER }}
-          replacement: ${{ steps.environment_values.outputs.api_url }}
+          replacement: ${{ steps.environment_values.outputs.api-url }}
 
       - name: Deploy artifact
         run: |
