@@ -16,4 +16,4 @@
       - name: Replace a seach with a replacement in a file
         shell: bash
         run: |
-          gsed -i 's,${{ inputs.search }},${{ inputs.replacement }},g' ${{ inputs.filepath }}
+          sed -i 's,${{ inputs.search }},${{ inputs.replacement }},g' ${{ inputs.filepath }}
