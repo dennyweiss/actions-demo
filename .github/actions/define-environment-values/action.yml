@@ -18,7 +18,7 @@
       value: ${{ steps.prepared_values.outputs.api-url }}
     current-datetime:
       description: "Api"
-      value: ${{ steps.prepared_values.outputs.api-url }}
+      value: ${{ steps.prepared_values.outputs.current-datetime }}
 
   runs:
     using: "composite"
