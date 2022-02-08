@@ -13,7 +13,7 @@
   runs:
     using: "composite"
     steps:
-      - name: Replace placeholder in file
+      - name: Replace a seach with a replacement in a file
         shell: bash
         run: |
-          gsed -i 's,${{ placeholder }},${{ inputs.api-url }},g' ${{ inputs.filepath }}
+          gsed -i 's,${{ inputs.search }},${{ inputs.replacement }},g' ${{ inputs.filepath }}
