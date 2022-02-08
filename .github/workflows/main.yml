@@ -10,6 +10,15 @@ on:
   workflow_dispatch:
 
 env:
+  ARTIFACT_NAME: 'ui artifact'
+  ARTIFACT_RETENTION_DAYS: 30
+  ARTIFACT_TARGET_FILEPATH: 'dist/'
+
+  DEFAULT_API_URL_PLACEHOLDER_FILEPATH: ./dist/index.html
+  DEFAULT_API_URL_PLACEHOLDER: '%%API_URL_PLACEHOLDER%%'
+
+  NODE_VERSION: '14.18.2'
+
   API_URL_PRODUCTION: https://api.ufostart.com
   APP_URL_PRODUCTION: https://space-control-center.ufostart.com
   TAG_NAME_PRODUCTION: production
@@ -19,35 +28,36 @@ env:
   TAG_NAME_STAGING: staging
 
 jobs:
-  pre_merge_check:
-    name: Pre merge check
+  build_and_test:
+    name: Build & Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
-      - name: Prepare variables
-        id: environment_variables
-        run: |
-          echo "VITE_API_URL=${{ env.API_URL_STAGING }}" >> $GITHUB_ENV
+      - name: Prepare environment values
+        id: environment_values
+        uses: ./.github/actions/define-environment-values
+        with:
+          api-url: ${{ env.API_URL_STAGING }}
+          app-url: ${{ env.APP_URL_STAGING }}
 
       - name: Define node version
         uses: actions/setup-node@v2
         with:
-          node-version: '14.18.2'
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: debug variables
         run: |
           echo "event_name:     '${{github.event_name}}"
-          echo "api url:        '${{ env.API_URL_STAGING }}'-env'${{ env.VITE_API_URL }}'-$VITE_API_URL"
-          echo "app url:        '${{ env.APP_URL_STAGING }}'"
+          echo "api url:        '${{ steps.environment_values.outputs.api_url }}'"
+          echo "app url:        '${{ steps.environment_values.outputs.app_url }}'"
           echo "GITHUB_RUN_ID:  '$GITHUB_RUN_ID'"
           echo "GITHUB_SHA:     '$GITHUB_SHA'"
 
       # step one
       - name: Build, Test
         run: |
-          echo "build & test for : VITE_API_URL='${{ env.VITE_API_URL }}'"
-          sleep 10
+          echo "build & test for : apiUrl='${{ steps.environment_values.outputs.api_url }}'"
           
           echo 'yarn install'
           echo 'yarn code:style'
@@ -56,155 +66,102 @@ jobs:
           echo 'yarn test'
           
           ./shell_script.sh
-          if [[ ! -d dist ]]; then
-            mkdir -p dist
+          if [[ ! -d '${{ env.ARTIFACT_TARGET_FILEPATH }}' ]]; then
+            mkdir -p '${{ env.ARTIFACT_TARGET_FILEPATH }}'
           fi
-          echo "VITE_API_URL: '${VITE_API_URL}'" > dist/artifact.txt
+          echo "apiUrl: '${{ steps.environment_values.outputs.api_url }}'" > dist/artifact.txt
         env:
           SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
 
-      # when push instead of merge
-      - name: Upload UI build artifact
+      - name: Publish UI build artifact
         uses: actions/upload-artifact@v2
         with:
-          name: ui_artifact_pre_merge_check
-          path: dist/
-          retention-days: 7
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_TARGET_FILEPATH }}
+          retention-days: ${{ ARTIFACT_RETENTION_DAYS }}
 
-  build_and_deploy_staging:
-    name: Build & Deploy to staging
+  deploy_to_staging:
+    name: Staging deployment
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
-    needs: [pre_merge_check]
+    needs: [build_and_test]
     environment:
       name: staging
-      url: ${{ steps.environment_variables.outputs.app_url }}
+      url: ${{ steps.environment_values.outputs.app_url }}
     steps:
       - uses: actions/checkout@v2
 
-      - name: Prepare variables
-        id: environment_variables
-        run: |
-          echo "::set-output name=api_url::${{ env.API_URL_STAGING }}"
-          echo "::set-output name=app_url::${{ env.APP_URL_STAGING }}"
-          echo "::set-output name=artifact_datetime::$(date "+%Y%m%d%H%M%S")"
-          echo "VITE_API_URL=${{ env.API_URL_STAGING }}" >> $GITHUB_ENV
-
-      - name: Define node version
-        uses: actions/setup-node@v2
+      - name: Prepare environment values
+        id: environment_values
+        uses: ./.github/actions/define-environment-values
         with:
-          node-version: '14.18.2'
+          api-url: ${{ env.API_URL_STAGING }}
+          app-url: ${{ env.APP_URL_STAGING }}
 
-      - name: debug variables
-        run: |
-          echo "event_name:     '${{github.event_name}}"
-          echo "api url:        '${{ env.API_URL_STAGING }}'-env'${{ env.VITE_API_URL }}'-$VITE_API_URL"
-          echo "app url:        '${{ env.APP_URL_STAGING }}'"
-          echo "GITHUB_RUN_ID:  '$GITHUB_RUN_ID'"
-          echo "GITHUB_SHA:     '$GITHUB_SHA'"
-
-      - name: Build, Test
-        run: |
-          echo "build & test for : VITE_API_URL='${{ env.VITE_API_URL }}'"
-          
-          echo 'yarn install'
-          echo 'yarn code:style'
-          echo 'yarn code:analyse'
-          echo 'yarn build'
-          echo 'yarn test'
-          
-          ./shell_script.sh
-          if [[ ! -d dist ]]; then
-            mkdir -p dist
-          fi
-          echo "VITE_API_URL: '${VITE_API_URL}'" > dist/artifact.txt
-        env:
-          SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
-
-      - name: Upload UI build artifact
-        uses: actions/upload-artifact@v2
+      - name: Fetch UI build artifact
+        uses: actions/download-artifact@v2
         with:
-          name: ui_artifact_staging
-          path: dist/
-          retention-days: 30
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_TARGET_FILEPATH }}
+
+      - name: Define api url
+        uses: ./.github/actions/replace-string-in-file
+        with:
+          filepath: ${{ env.DEFAULT_API_URL_PLACEHOLDER_FILEPATH }}
+          search: ${{ env.DEFAULT_API_URL_PLACEHOLDER }}
+          replacement: ${{ steps.environment_values.outputs.api_url }}
 
       - name: Deploy artifact
         run: |
-          cat dist/artifact.txt
+          cat '${{ env.ARTIFACT_TARGET_FILEPATH }}/artifact.txt'
 
       - name: Tag artifact
-        uses: ./.github/actions/add-artifact-tag
+        uses: ./.github/actions/add-environment-datetime-tag
         if: always()
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           environment-name: ${{ env.TAG_NAME_STAGING }}
-          datetime: ${{ steps.environment_variables.outputs.artifact_datetime }}
+          datetime: ${{ steps.environment_values.outputs.current-datetime }}
 
-  build_and_deploy_production:
-    name: Build & Deploy to production
+  deploy_to_production:
+    name: Production deployment
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
-    needs: [pre_merge_check,build_and_deploy_staging]
+    needs: [build_and_test,deploy_to_staging]
     environment:
       name: production
-      url: ${{ steps.environment_variables.outputs.app_url }}
+      url: ${{ steps.environment_values.outputs.app_url }}
     steps:
       - uses: actions/checkout@v2
 
-      - name: Prepare variables
-        id: environment_variables
-        run: |
-          echo "::set-output name=api_url::${{ env.API_URL_PRODUCTION }}"
-          echo "::set-output name=app_url::${{ env.APP_URL_PRODUCTION }}"
-          echo "::set-output name=artifact_datetime::$(date "+%Y%m%d%H%M%S")"
-          echo "VITE_API_URL=${{ env.API_URL_PRODUCTION }}" >> $GITHUB_ENV
-
-      - name: Define node version
-        uses: actions/setup-node@v2
+      - name: Prepare environment values
+        id: environment_values
+        uses: ./.github/actions/define-environment-values
         with:
-          node-version: '14.18.2'
+          api-url: ${{ env.API_URL_PRODUCTION }}
+          app-url: ${{ env.APP_URL_PRODUCTION }}
 
-      - name: debug variables
-        run: |
-          echo "event_name:     '${{github.event_name}}"
-          echo "api url:        '${{ env.API_URL_STAGING }}'-env'${{ env.VITE_API_URL }}'-$VITE_API_URL"
-          echo "app url:        '${{ env.APP_URL_STAGING }}'"
-          echo "GITHUB_RUN_ID:  '$GITHUB_RUN_ID'"
-          echo "GITHUB_SHA:     '$GITHUB_SHA'"
-
-      - name: Build, Test
-        run: |
-          echo "build & test for : VITE_API_URL='${{ env.VITE_API_URL }}'"
-          
-          echo 'yarn install'
-          echo 'yarn code:style'
-          echo 'yarn code:analyse'
-          echo 'yarn build'
-          echo 'yarn test'
-          
-          ./shell_script.sh
-          if [[ ! -d dist ]]; then
-            mkdir -p dist
-          fi
-          echo "VITE_API_URL: '${VITE_API_URL}'" > dist/artifact.txt
-        env:
-          SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
-
-      - name: Upload UI build artifact
-        uses: actions/upload-artifact@v2
+      - name: Fetch UI build artifact
+        uses: actions/download-artifact@v2
         with:
-          name: ui_artifact_production
-          path: dist/
-          retention-days: 30
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_TARGET_FILEPATH }}
+
+      - name: Define api url
+        uses: ./.github/actions/replace-string-in-file
+        with:
+          filepath: ${{ env.DEFAULT_API_URL_PLACEHOLDER_FILEPATH }}
+          search: ${{ env.DEFAULT_API_URL_PLACEHOLDER }}
+          replacement: ${{ steps.environment_values.outputs.api_url }}
 
       - name: Deploy artifact
         run: |
-          cat dist/artifact.txt
+          cat '${{ env.ARTIFACT_TARGET_FILEPATH }}/artifact.txt'
 
       - name: Tag artifact
-        uses: ./.github/actions/add-artifact-tag
+        uses: ./.github/actions/add-environment-datetime-tag
         if: always()
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           environment-name: ${{ env.TAG_NAME_PRODUCTION }}
-          datetime: ${{ steps.environment_variables.outputs.artifact_datetime }}
+          datetime: ${{ steps.environment_values.outputs.current-datetime }}

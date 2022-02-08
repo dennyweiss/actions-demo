@@ -1,25 +1,24 @@
-name: "Add artifact tag"
-description: "Adds an artifact tag composed of environment name and datetime string"
+name: "Add composite environment and datetime tag"
+description: "Add composite environment and datetime tag to current commit"
 inputs:
   github-token:
     required: true
     description: "The github token to modify the repository"
   environment-name:
     required: true
-    description: "The environment that belongs to tag"
+    description: "The environment that belongs to the tag"
   datetime:
     required: true
     description: "The datetime string that's part of the tag"
 runs:
   using: "composite"
   steps:
-    - name: Create artifact tag name
-      id: create_artifact_tag_name
+    - id: create_tag
       shell: bash
       run: |
-        echo "::set-output name=artifact_tag_name::${{ inputs.environment-name }}-${{ inputs.datetime }}"
+        echo "::set-output name=tag_name::${{ inputs.environment-name }}-${{ inputs.datetime }}"
 
-    - name: Attach artifact tag
+    - id: add_tag
       uses: actions/github-script@v3
       with:
         github-token: ${{ inputs.github-token }}
@@ -28,15 +27,15 @@ runs:
               await github.git.deleteRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                ref: "tags/${{ steps.create_artifact_tag_name.outputs.artifact_tag_name }}"
+                ref: "tags/${{ steps.create_tag.outputs.tag_name }}"
               })
           } catch (e) {
-            console.log("The '${{ steps.create_artifact_tag_name.outputs.artifact_tag_name }}' tag doesn't exist yet: " + e)
+            console.log("The '${{ steps.create_tag.outputs.tag_name }}' tag doesn't exist yet: " + e)
           }
           await github.git.createRef({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            ref: "refs/tags/${{ steps.create_artifact_tag_name.outputs.artifact_tag_name }}",
+            ref: "refs/tags/${{ steps.create_tag.outputs.tag_name }}",
             sha: context.sha
           })        
 
