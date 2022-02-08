@@ -29,7 +29,7 @@ env:
 
 jobs:
   build_and_test:
-    name: Build & Test
+    name: Build and test UI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -81,7 +81,7 @@ jobs:
           retention-days: ${{ ARTIFACT_RETENTION_DAYS }}
 
   deploy_to_staging:
-    name: Staging deployment
+    name: Deploy UI to staging
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     needs: [build_and_test]
@@ -124,7 +124,7 @@ jobs:
           datetime: ${{ steps.environment_values.outputs.current-datetime }}
 
   deploy_to_production:
-    name: Production deployment
+    name: Deploy UI to production
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     needs: [build_and_test,deploy_to_staging]
