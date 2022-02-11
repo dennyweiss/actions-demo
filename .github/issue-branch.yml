@@ -1,4 +1,4 @@
 branchName: '${issue.number}-${issue.title[0,64]}'
 silent: false
-autoCloseIssue: true
+autoCloseIssue: false
 gitSafeReplacementChar: '-'
