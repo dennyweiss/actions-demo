@@ -12,7 +12,7 @@ on:
 env:
   ARTIFACT_NAME: 'ui artifact'
   ARTIFACT_RETENTION_DAYS: 30
-  ARTIFACT_TARGET_FILEPATH: 'dist/'
+  ARTIFACT_BUILD_TARGET_FILEPATH: 'dist/'
 
   DEFAULT_API_URL_PLACEHOLDER_FILEPATH: ./dist/index.html
   DEFAULT_API_URL_PLACEHOLDER: '%%API_URL_PLACEHOLDER%%'
@@ -58,110 +58,128 @@ jobs:
       - name: Build, Test
         run: |
           echo "build & test for : apiUrl='${{ steps.environment_values.outputs.api-url }}'"
-          
-          echo 'yarn install'
-          echo 'yarn code:style'
-          echo 'yarn code:analyse'
-          echo 'yarn build'
-          echo 'yarn test'
-          
-          ./shell_script.sh
-          if [[ ! -d '${{ env.ARTIFACT_TARGET_FILEPATH }}' ]]; then
-            mkdir -p '${{ env.ARTIFACT_TARGET_FILEPATH }}'
-          fi
           echo "apiUrl: '${{ steps.environment_values.outputs.api-url }}'" > dist/artifact.txt
-        env:
-          SHELL_SCRIPT_RESULT_OK: ${{ secrets.SHELL_SCRIPT_RESULT_OK }}
 
-      - name: Publish UI build artifact
-        uses: actions/upload-artifact@v2
+      - name: Resolve issue number
+        id: resolved_issue_number
+        uses: ./.github/actions/resolve-issue/action.yml
+
+      - name: Resolve artifact
+        id: resolved_artifact
+        uses: ./.github/actions/resolve-artifact/action.yml
+
+      - name: Zip artifact
+        uses: ./.github/actions/package-artifact/action.yml
         with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACT_TARGET_FILEPATH }}
-          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+          source: ${{ env.ARTIFACT_TARGET_FILEPATH }}
+          target: './${{ steps.resolved_artifact.outputs.filename }}'
 
-  deploy_to_staging:
-    name: Deploy UI to staging
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    needs: [build_and_test]
-    environment:
-      name: staging
-      url: ${{ steps.environment_values.outputs.app-url }}
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Prepare environment values
-        id: environment_values
-        uses: ./.github/actions/define-environment-values
+      - name: Publish artifact to S3 artifact store
+        uses: ./.github/actions/aws-s3-artifact-transfer
         with:
-          api-url: ${{ env.API_URL_STAGING }}
-          app-url: ${{ env.APP_URL_STAGING }}
+          access-key-id: ${{ secrets.ARTIFACT_ACCESS_KEY_ID }}
+          secret-access-key: ${{ secrets.ARTIFACT_SECRET_ACCESS_KEY }}
+          region: ${{ secrets.ARTIFACT_REGION }}
+          source-path: '.'
+          artifact-name: ${{ steps.resolved_artifact.outputs.filename }}
+          target-path: ${{ steps.resolved_artifact.outputs.s3 }}
 
-      - name: Fetch UI build artifact
-        uses: actions/download-artifact@v2
+      - name: Create artifact comment
+        uses: actions/github-script@v6
         with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACT_TARGET_FILEPATH }}
+          script: |
+            const issueNumber = process.env.ISSUE_NUMBER
 
-      - name: Define api url
-        uses: ./.github/actions/replace-string-in-file
-        with:
-          filepath: ${{ env.DEFAULT_API_URL_PLACEHOLDER_FILEPATH }}
-          search: ${{ env.DEFAULT_API_URL_PLACEHOLDER }}
-          replacement: ${{ steps.environment_values.outputs.api-url }}
+            github.rest.issues.createComment({
+              issue_number: parseInt('${{ steps.resolved_issue_number.outputs.issue-number }}'),
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: |
+                🆗 Artifact created: [${{ steps.resolved_artifact.outputs.s3 }}](${{ steps.resolved_artifact.outputs.s3 }})
+            })
 
-      - name: Deploy artifact
-        run: |
-          cat '${{ env.ARTIFACT_TARGET_FILEPATH }}/artifact.txt'
-
-      - name: Tag artifact
-        uses: ./.github/actions/add-environment-datetime-tag
-        if: always()
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          environment-name: ${{ env.TAG_NAME_STAGING }}
-          datetime: ${{ steps.environment_values.outputs.current-datetime }}
-
-  deploy_to_production:
-    name: Deploy UI to production
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    needs: [build_and_test,deploy_to_staging]
-    environment:
-      name: production
-      url: ${{ steps.environment_values.outputs.app-url }}
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Prepare environment values
-        id: environment_values
-        uses: ./.github/actions/define-environment-values
-        with:
-          api-url: ${{ env.API_URL_PRODUCTION }}
-          app-url: ${{ env.APP_URL_PRODUCTION }}
-
-      - name: Fetch UI build artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACT_TARGET_FILEPATH }}
-
-      - name: Define api url
-        uses: ./.github/actions/replace-string-in-file
-        with:
-          filepath: ${{ env.DEFAULT_API_URL_PLACEHOLDER_FILEPATH }}
-          search: ${{ env.DEFAULT_API_URL_PLACEHOLDER }}
-          replacement: ${{ steps.environment_values.outputs.api-url }}
-
-      - name: Deploy artifact
-        run: |
-          cat '${{ env.ARTIFACT_TARGET_FILEPATH }}/artifact.txt'
-
-      - name: Tag artifact
-        uses: ./.github/actions/add-environment-datetime-tag
-        if: always()
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          environment-name: ${{ env.TAG_NAME_PRODUCTION }}
-          datetime: ${{ steps.environment_values.outputs.current-datetime }}
+#  deploy_to_staging:
+#    name: Deploy UI to staging
+#    runs-on: ubuntu-latest
+#    if: github.event_name == 'push'
+#    needs: [build_and_test]
+#    environment:
+#      name: staging
+#      url: ${{ steps.environment_values.outputs.app-url }}
+#    steps:
+#      - uses: actions/checkout@v2
+#
+#      - name: Prepare environment values
+#        id: environment_values
+#        uses: ./.github/actions/define-environment-values
+#        with:
+#          api-url: ${{ env.API_URL_STAGING }}
+#          app-url: ${{ env.APP_URL_STAGING }}
+#
+#      - name: Fetch UI build artifact
+#        uses: actions/download-artifact@v2
+#        with:
+#          name: ${{ env.ARTIFACT_NAME }}
+#          path: ${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}
+#
+#      - name: Define api url
+#        uses: ./.github/actions/replace-string-in-file
+#        with:
+#          filepath: ${{ env.DEFAULT_API_URL_PLACEHOLDER_FILEPATH }}
+#          search: ${{ env.DEFAULT_API_URL_PLACEHOLDER }}
+#          replacement: ${{ steps.environment_values.outputs.api-url }}
+#
+#      - name: Deploy artifact
+#        run: |
+#          cat '${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}/artifact.txt'
+#
+#      - name: Tag artifact
+#        uses: ./.github/actions/add-environment-datetime-tag
+#        if: always()
+#        with:
+#          github-token: ${{ secrets.GITHUB_TOKEN }}
+#          environment-name: ${{ env.TAG_NAME_STAGING }}
+#          datetime: ${{ steps.environment_values.outputs.current-datetime }}
+#
+#  deploy_to_production:
+#    name: Deploy UI to production
+#    runs-on: ubuntu-latest
+#    if: github.event_name == 'push'
+#    needs: [build_and_test,deploy_to_staging]
+#    environment:
+#      name: production
+#      url: ${{ steps.environment_values.outputs.app-url }}
+#    steps:
+#      - uses: actions/checkout@v2
+#
+#      - name: Prepare environment values
+#        id: environment_values
+#        uses: ./.github/actions/define-environment-values
+#        with:
+#          api-url: ${{ env.API_URL_PRODUCTION }}
+#          app-url: ${{ env.APP_URL_PRODUCTION }}
+#
+#      - name: Fetch UI build artifact
+#        uses: actions/download-artifact@v2
+#        with:
+#          name: ${{ env.ARTIFACT_NAME }}
+#          path: ${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}
+#
+#      - name: Define api url
+#        uses: ./.github/actions/replace-string-in-file
+#        with:
+#          filepath: ${{ env.DEFAULT_API_URL_PLACEHOLDER_FILEPATH }}
+#          search: ${{ env.DEFAULT_API_URL_PLACEHOLDER }}
+#          replacement: ${{ steps.environment_values.outputs.api-url }}
+#
+#      - name: Deploy artifact
+#        run: |
+#          cat '${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}/artifact.txt'
+#
+#      - name: Tag artifact
+#        uses: ./.github/actions/add-environment-datetime-tag
+#        if: always()
+#        with:
+#          github-token: ${{ secrets.GITHUB_TOKEN }}
+#          environment-name: ${{ env.TAG_NAME_PRODUCTION }}
+#          datetime: ${{ steps.environment_values.outputs.current-datetime }}

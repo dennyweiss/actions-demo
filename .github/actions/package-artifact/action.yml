@@ -1,0 +1,26 @@
+name: 'Package an artifact directory'
+description: 'Packages an artifact directory'
+
+inputs:
+  action:
+    required: true
+    description: ''
+  source:
+    required: true
+    description: ''
+  target:
+    required: true
+    description: ''
+runs:
+  using: composite
+  steps:
+    - name: Zip source
+      if: ${{ inputs.action == 'zip' }}
+      uses: montudor/action-zip@v1
+      with:
+          args: zip -qq -r "${{ inputs.target }}" "${{ inputs.source }}"
+    - name: unZip source
+      if: ${{ inputs.action == 'unzip' }}
+      uses: montudor/action-zip@v1
+      with:
+          args: unzip -qq "${{ inputs.source }}" -d "${{ inputs.target }}"

@@ -1,0 +1,38 @@
+name: 'AWS S3 Artifact Transfer'
+description: 'Transfer a single file'
+inputs:
+  access-key-id:
+    required: true
+    description: 'AWS access key id'
+  secret-access-key:
+    required: true
+    description: 'AWS access key secret'
+  region:
+    required: true
+    description: 'AWS region'
+  source-path:
+    required: true
+    description: "Source filepath for s3 start with 's3://'"
+  artifact-name:
+    required: true
+    description: 'Name of the artifact'
+  target-path:
+    required: true
+    description: "Target filepath for s3 start with 's3://"
+runs:
+  using: "composite"
+  steps:
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ inputs.access-key-id }}
+        aws-secret-access-key: ${{ inputs.secret-access-key }}
+        aws-region: ${{ inputs.region }}
+
+    - name: Transfer directory to AWS S3
+      shell: bash
+      run: |
+        aws s3 cp '${{ env.source }}' '${{ env.target }}'
+      env:
+        source: ${{ inputs.source-path }}/${{ inputs.artifact-name }}
+        target: ${{ inputs.target-path }}/${{ inputs.artifact-name }}
