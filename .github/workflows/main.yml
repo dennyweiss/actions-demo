@@ -121,7 +121,7 @@ jobs:
             );
             
             if (!actionComments || !actionComments.data || !Array.isArray(actionComments.data) || actionComments.data.length === 0) {
-              throw new Error("No comment found that has the right pattern");
+              throw new Error("No comment found that has the right pattern"); # @todo something is broken here
             }
             
             return actionComments[actionComments.length - 1].body.replace("Artifact created: ", "").trim()
