@@ -76,6 +76,7 @@ jobs:
       - name: Zip artifact
         uses: ./.github/actions/package-artifact
         with:
+          action: 'zip'
           source: ${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}
           target: './${{ steps.resolved_artifact.outputs.filename }}'
 
