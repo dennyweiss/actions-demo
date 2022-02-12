@@ -12,7 +12,7 @@ on:
 env:
   ARTIFACT_NAME: 'ui artifact'
   ARTIFACT_RETENTION_DAYS: 30
-  ARTIFACT_BUILD_TARGET_FILEPATH: 'dist/'
+  ARTIFACT_BUILD_TARGET_FILEPATH: './dist/'
   ARTIFACT_BUCKET_NAME: 'space-control-panel-artifacts'
 
   DEFAULT_API_URL_PLACEHOLDER_FILEPATH: ./dist/index.html
@@ -76,7 +76,7 @@ jobs:
       - name: Zip artifact
         uses: ./.github/actions/package-artifact
         with:
-          source: ${{ env.ARTIFACT_TARGET_FILEPATH }}
+          source: ${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}
           target: './${{ steps.resolved_artifact.outputs.filename }}'
 
       - name: Publish artifact to S3 artifact store
