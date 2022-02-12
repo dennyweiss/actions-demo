@@ -32,6 +32,9 @@ runs:
     - name: Transfer directory to AWS S3
       shell: bash
       run: |
+        echo "source: '${{ env.source }}'"
+        echo "target: '${{ env.target }}'"
+        
         aws s3 cp '${{ env.source }}' '${{ env.target }}'
       env:
         source: ${{ inputs.source-path }}/${{ inputs.artifact-name }}
