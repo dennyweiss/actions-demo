@@ -61,20 +61,20 @@ jobs:
           echo "build & test for : apiUrl='${{ steps.environment_values.outputs.api-url }}'"
           echo "apiUrl: '${{ steps.environment_values.outputs.api-url }}'" > dist/artifact.txt
 
-#      - name: Resolve issue number
-#        id: resolved_issue_number
-#        uses: ./.github/actions/resolve-issue-number/action.yml
+      - name: Resolve issue number
+        id: resolved_issue_number
+        uses: ./.github/actions/resolve-issue-number
 
       - name: Resolve artifact
         id: resolved_artifact
-        uses: ./.github/actions/resolve-artifact/action.yml
+        uses: ./.github/actions/resolve-artifact
         with:
           issue-number: ${{ steps.resolved_issue_number.outputs.issue-number }}
           sha: ${{ github.sha }}
           bucket-name: ${{ env.ARTIFACT_BUCKET_NAME }}
 
       - name: Zip artifact
-        uses: ./.github/actions/package-artifact/action.yml
+        uses: ./.github/actions/package-artifact
         with:
           source: ${{ env.ARTIFACT_TARGET_FILEPATH }}
           target: './${{ steps.resolved_artifact.outputs.filename }}'
