@@ -112,7 +112,7 @@ jobs:
               owner: context.repo
             })
             
-            const comments = await octokit.issues.listComments({
+            const comments = await github.rest.issues.listComments({
               ...context.repo,
               issue_number: parseInt('${{ steps.resolved_issue_number.outputs.issue-number }}'),
             })
