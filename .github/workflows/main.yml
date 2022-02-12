@@ -99,7 +99,7 @@ jobs:
               issue_number: parseInt('${{ steps.resolved_issue_number.outputs.issue-number }}'),
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '🆗 Artifact created: [${{ steps.resolved_artifact.outputs.s3-url }}](${{ steps.resolved_artifact.outputs.s3-url }})'
+              body: "Artifact created: '${{ steps.resolved_artifact.outputs.s3-url }}'"
             })
 
 #  deploy_to_staging:
