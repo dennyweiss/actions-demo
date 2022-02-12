@@ -113,12 +113,12 @@ jobs:
               repo: context.repo.repo,
               issue_number: parseInt('${{ steps.resolved_issue_number.outputs.issue-number }}'),
             })
+
+            console.log(actionComments)
             
             const actionComment = comments.data.find(
               (comment) => comment.body.indexOf("Artifact created: ") >= 0
             );
-            
-            console.log(actionComment)
             
             if (!actionComment) {
               throw new Error("No comment found that has the right pattern");
@@ -128,7 +128,7 @@ jobs:
 
       - name: Print
         run: |
-          echo '${{ steps.create_artifact_comment.outputs.return}}'
+          echo '${{ steps.create_artifact_comment.outputs.result }}'
 
 #  deploy_to_staging:
 #    name: Deploy UI to staging
