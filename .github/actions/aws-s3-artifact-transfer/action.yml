@@ -13,9 +13,6 @@ inputs:
   source-path:
     required: true
     description: "Source filepath for s3 start with 's3://'"
-  artifact-name:
-    required: true
-    description: 'Name of the artifact'
   target-path:
     required: true
     description: "Target filepath for s3 start with 's3://"
@@ -35,7 +32,4 @@ runs:
         echo "source: '${{ env.source }}'"
         echo "target: '${{ env.target }}'"
         
-        aws s3 cp '${{ env.source }}' '${{ env.target }}'
-      env:
-        source: ${{ inputs.source-path }}/${{ inputs.artifact-name }}
-        target: ${{ inputs.target-path }}/${{ inputs.artifact-name }}
+        aws s3 cp '${{ inputs.source-path }}' '${{ inputs.target-path }}'

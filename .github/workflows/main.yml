@@ -85,9 +85,8 @@ jobs:
           access-key-id: ${{ secrets.ARTIFACT_ACCESS_KEY_ID }}
           secret-access-key: ${{ secrets.ARTIFACT_SECRET_ACCESS_KEY }}
           region: ${{ secrets.ARTIFACT_REGION }}
-          source-path: '.'
-          artifact-name: ${{ steps.resolved_artifact.outputs.filename }}
-          target-path: ${{ steps.resolved_artifact.outputs.s3-url }}
+          source-path: './${{ steps.resolved_artifact.outputs.filename }}'
+          target-path: '${{ steps.resolved_artifact.outputs.s3-url }}'
 
       - name: Create artifact comment
         uses: actions/github-script@v6
