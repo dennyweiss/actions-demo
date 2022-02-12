@@ -6,8 +6,9 @@
       value: ${{ steps.resolved_issue_number.outputs.result }}
 
   runs:
-    using: composite
+    using: "composite"
     steps:
+      - uses: actions/checkout@v2
       - name: Get branch name
         id: branch-name
         uses: tj-actions/branch-names@v5.1

@@ -63,7 +63,7 @@ jobs:
 
       - name: Resolve issue number
         id: resolved_issue_number
-        uses: ./.github/actions/resolve-issue/action.yml
+        uses: ./.github/actions/resolve-issue-number/action.yml
 
       - name: Resolve artifact
         id: resolved_artifact
