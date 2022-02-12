@@ -13,6 +13,7 @@ env:
   ARTIFACT_NAME: 'ui artifact'
   ARTIFACT_RETENTION_DAYS: 30
   ARTIFACT_BUILD_TARGET_FILEPATH: 'dist/'
+  ARTIFACT_BUCKET_NAME: 'space-control-panel-artifacts'
 
   DEFAULT_API_URL_PLACEHOLDER_FILEPATH: ./dist/index.html
   DEFAULT_API_URL_PLACEHOLDER: '%%API_URL_PLACEHOLDER%%'
@@ -67,6 +68,10 @@ jobs:
       - name: Resolve artifact
         id: resolved_artifact
         uses: ./.github/actions/resolve-artifact/action.yml
+        with:
+          issue-number: ${{ steps.resolved_issue_number.outputs.issue-number }}
+          sha: ${{ github.sha }}
+          bucket-name: ${{ env.ARTIFACT_BUCKET_NAME }}
 
       - name: Zip artifact
         uses: ./.github/actions/package-artifact/action.yml
