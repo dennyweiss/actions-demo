@@ -107,13 +107,10 @@ jobs:
         with:
           script: |
             const issueNumber = process.env.ISSUE_NUMBER
-            await github.rest.issues.createComment({
-              issue_number: parseInt('${{ steps.resolved_issue_number.outputs.issue-number }}'),
-              owner: context.repo
-            })
-            
+
             const comments = await github.rest.issues.listComments({
-              ...context.repo,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
               issue_number: parseInt('${{ steps.resolved_issue_number.outputs.issue-number }}'),
             })
             
