@@ -9,21 +9,25 @@
     using: "composite"
     steps:
       - uses: actions/checkout@v2
-      - name: Get branch name
-        id: branch-name
-        uses: tj-actions/branch-names@v5.1
-
-      - name: Resolve issue number
-        uses: actions/github-script@v6
-        id: resolved_issue_number
-        env:
-          CURRENT_BRANCH: ${{ steps.branch-name.outputs.current_branch }}
-        with:
-          result-encoding: string
-          script: |
-            const currentBranch = process.env.CURRENT_BRANCH
-            let issueNumber = 'null'
-            if (currentBranch.search(/^[0-9]+-/) >= 0) {
-              issueNumber = currentBranch.match(/^([0-9]+)-/)[1]
-            }
-            return issueNumber 
+      - name: 'dump'
+        shell: bash
+        run: |
+          git -l 1
+#      - name: Get branch name
+#        id: branch-name
+#        uses: tj-actions/branch-names@v5.1
+#
+#      - name: Resolve issue number
+#        uses: actions/github-script@v6
+#        id: resolved_issue_number
+#        env:
+#          CURRENT_BRANCH: ${{ steps.branch-name.outputs.current_branch }}
+#        with:
+#          result-encoding: string
+#          script: |
+#            const currentBranch = process.env.CURRENT_BRANCH
+#            let issueNumber = 'null'
+#            if (currentBranch.search(/^[0-9]+-/) >= 0) {
+#              issueNumber = currentBranch.match(/^([0-9]+)-/)[1]
+#            }
+#            return issueNumber
