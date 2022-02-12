@@ -116,19 +116,19 @@ jobs:
 
             console.log(comments)
             
-            const actionComment = comments.data.find(
+            const actionComments = comments.data.filter(
               (comment) => comment.body.indexOf("Artifact created: ") >= 0
             );
             
-            if (!actionComment) {
+            if (!actionComments || !actionComments.data || !Array.isArray(actionComments.data) || actionComments.data.length === 0) {
               throw new Error("No comment found that has the right pattern");
             }
             
-            return actionComment.body.replace("Artifact created: ", "").trim()
+            return actionComments[actionComments.length - 1].body.replace("Artifact created: ", "").trim()
 
       - name: Print
         run: |
-          echo '${{ steps.create_artifact_comment.outputs.result }}'
+          echo 'Url: ${{ steps.create_artifact_comment.outputs.result }}'
 
 #  deploy_to_staging:
 #    name: Deploy UI to staging
