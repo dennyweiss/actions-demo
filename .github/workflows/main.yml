@@ -87,7 +87,7 @@ jobs:
           region: ${{ secrets.ARTIFACT_REGION }}
           source-path: '.'
           artifact-name: ${{ steps.resolved_artifact.outputs.filename }}
-          target-path: ${{ steps.resolved_artifact.outputs.s3 }}
+          target-path: ${{ steps.resolved_artifact.outputs.s3-url }}
 
       - name: Create artifact comment
         uses: actions/github-script@v6
@@ -100,7 +100,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: |
-                🆗 Artifact created: [${{ steps.resolved_artifact.outputs.s3 }}](${{ steps.resolved_artifact.outputs.s3 }})
+                🆗 Artifact created: [${{ steps.resolved_artifact.outputs.s3-url }}](${{ steps.resolved_artifact.outputs.s3-url }})
             })
 
 #  deploy_to_staging:

@@ -16,7 +16,7 @@
       value: ${{ steps.resolve_artifact_filename.outputs.result }}
     s3-url:
       description: 's3 url for the artifact'
-      value: 's3://${{ inputs.bucket-name}}(${{ steps.resolve_artifact_filename.outputs.result }}'
+      value: 's3://${{ inputs.bucket-name  }}(${{ steps.resolve_artifact_filename.outputs.result }}'
   runs:
     using: composite
     steps:
