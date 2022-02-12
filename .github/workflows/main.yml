@@ -61,9 +61,9 @@ jobs:
           echo "build & test for : apiUrl='${{ steps.environment_values.outputs.api-url }}'"
           echo "apiUrl: '${{ steps.environment_values.outputs.api-url }}'" > dist/artifact.txt
 
-      - name: Resolve issue number
-        id: resolved_issue_number
-        uses: ./.github/actions/resolve-issue-number/action.yml
+#      - name: Resolve issue number
+#        id: resolved_issue_number
+#        uses: ./.github/actions/resolve-issue-number/action.yml
 
       - name: Resolve artifact
         id: resolved_artifact
