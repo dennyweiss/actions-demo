@@ -119,7 +119,7 @@ jobs:
   deploy_to_staging:
     name: Deploy UI to staging
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    #if: github.event_name == 'push'
     needs: [build_and_test]
     environment:
       name: staging
