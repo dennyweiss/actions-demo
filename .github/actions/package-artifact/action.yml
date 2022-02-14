@@ -26,4 +26,4 @@ runs:
       shell: bash
       run: |
         mkdir -p ${{ inputs.target }}
-        tar -zxvf ${{ inputs.source }} ${{ inputs.target }}
+        tar -zxvf ${{ inputs.source }} -C ${{ inputs.target }}
