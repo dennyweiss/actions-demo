@@ -1,5 +1,10 @@
   name: Build UI artifact
-  description:
+  description: ''
+
+  inputs:
+    target-directory:
+      description: ''
+      required: true
   runs:
     using: "composite"
     steps:
@@ -8,4 +13,4 @@
         shell: bash
         run: |
           echo 'building'
-          mkdir -p dist
+          mkdir -p ${{ inputs.target-directory }}

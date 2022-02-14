@@ -83,6 +83,8 @@ jobs:
 
       - name: Build UI artifact
         uses: ./.github/actions/build-ui-artifact
+        with:
+          target-directory: ${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}
 
       - name: Create version file
         uses: ./.github/actions/create-version
@@ -146,7 +148,7 @@ jobs:
         with:
           api-url: ${{ env.API_URL_STAGING }}
           app-url: ${{ env.APP_URL_STAGING }}
-          environment: staging
+          environment-name: staging
 
       - name: Resolve issue number
         id: resolved_issue_number
@@ -194,7 +196,7 @@ jobs:
       - name: Update version file
         uses: ./.github/actions/update-version
         with:
-          environment: ${{ steps.environment_values.outputs.environment }}
+          environment-name: ${{ steps.environment_values.outputs.environment }}
           deployment-timestamp: ${{ steps.environment_values.outputs.current-datetime }}
 
       - name: Define api url

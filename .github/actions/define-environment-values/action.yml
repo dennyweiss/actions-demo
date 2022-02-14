@@ -8,7 +8,7 @@
     app-url:
       required: true
       description: "App url that should be used by the environment"
-    environment:
+    environment-name:
       required: false
       description: ""
 
@@ -32,4 +32,4 @@
           echo "::set-output name=api-url::${{ inputs.api-url }}"
           echo "::set-output name=app-url::${{ inputs.app-url }}"
           echo "::set-output name=current-datetime::$(date "+%Y%m%d%H%M%S")"
-          echo "::set-output name=environment::${{ environment }}"
+          echo "::set-output name=environment::${{ inputs.environment-name }}"
