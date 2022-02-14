@@ -14,6 +14,8 @@ env:
   ARTIFACT_RETENTION_DAYS: 30
   ARTIFACT_BUILD_TARGET_FILEPATH: './dist/'
   ARTIFACT_BUCKET_NAME: 'space-control-panel-artifacts'
+  #  ARTIFACT_ACCESS_KEY_ID: @info needs to be defined in 'github > Settings > Secrets > Actions'
+  #  ARTIFACT_SECRET_ACCESS_KEY: @info needs to be defined in 'github > Settings > Secrets > Actions'
 
   DEFAULT_API_URL_PLACEHOLDER_FILEPATH: ./dist/index.html
   DEFAULT_API_URL_PLACEHOLDER: '%%API_URL_PLACEHOLDER%%'
@@ -21,14 +23,18 @@ env:
   NODE_VERSION: '14.18.2'
 
   API_URL_PRODUCTION: https://api.ufostart.com
-  APP_URL_PRODUCTION: https://space-control-center.ufostart.com
+  APP_URL_PRODUCTION: https://space-control-panel.ufostart.com
   TAG_NAME_PRODUCTION: production
   APP_S3_BUCKET_NAME_PRODUCTION: space-control-panel.ufostart.com
+  #  APP_S3_ACCESS_KEY_ID_PRODUCTION: @info needs to be defined in 'github > Settings > Secrets > Actions'
+  #  APP_S3_SECRET_ACCESS_KEY_PRODUCTION: @info needs to be defined in 'github > Settings > Secrets > Actions'
 
   API_URL_STAGING: https://staging.api.ufostart.com
-  APP_URL_STAGING: https://staging.space-control-center.ufostart.com
+  APP_URL_STAGING: https://staging-space-control-panel.ufostart.com
   TAG_NAME_STAGING: staging
   APP_S3_BUCKET_NAME_STAGING: staging-space-control-panel.ufostart.com
+  #  APP_S3_ACCESS_KEY_ID_STAGING: @info needs to be defined in 'github > Settings > Secrets > Actions'
+  #  APP_S3_SECRET_ACCESS_KEY_STAGING: @info needs to be defined in 'github > Settings > Secrets > Actions'
 
 jobs:
   build_and_test:
@@ -57,11 +63,9 @@ jobs:
           echo "GITHUB_RUN_ID:  '$GITHUB_RUN_ID'"
           echo "GITHUB_SHA:     '$GITHUB_SHA'"
 
-      # step one
-      - name: Build, Test
+      - name: Inspect filesystem
         run: |
-          echo "build & test for : apiUrl='${{ steps.environment_values.outputs.api-url }}'"
-          echo "apiUrl: '${{ steps.environment_values.outputs.api-url }}'" > dist/artifact.txt
+          tree -a -L 2
 
       - name: Resolve issue number
         id: resolved_issue_number
@@ -75,12 +79,29 @@ jobs:
           sha: ${{ github.sha }}
           bucket-name: ${{ env.ARTIFACT_BUCKET_NAME }}
 
-      - name: Zip artifact
+      - name: Build UI artifact
+        uses: ./.github/actions/build-ui-artifact
+        with:
+          target-directory: ${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}
+
+      - name: Create version file
+        uses: ./.github/actions/create-version
+        with:
+          issue-number: ${{ steps.resolved_issue_number.outputs.issue-number }}
+          sha: ${{ github.sha }}
+          built-at: ${{ steps.environment_values.outputs.current-datetime }}
+
+      - name: Inspect filesystem
+        run: |
+          ls -al ./dist
+          tree -a -L 2
+
+      - name: Compress artifact
         uses: ./.github/actions/package-artifact
         with:
-          action: 'zip'
+          action: 'compress'
           source: ${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}
-          target: './${{ steps.resolved_artifact.outputs.filename }}'
+          target: '${{ steps.resolved_artifact.outputs.filename }}'
 
       - name: Publish artifact to S3 artifact store
         uses: ./.github/actions/aws-s3-artifact-transfer
@@ -130,6 +151,7 @@ jobs:
         with:
           api-url: ${{ env.API_URL_STAGING }}
           app-url: ${{ env.APP_URL_STAGING }}
+          environment-name: staging
 
       - name: Resolve issue number
         id: resolved_issue_number
@@ -140,7 +162,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const { default: resolveLastCommentsData } = await import('${{ github.workspace }}/.github/src/resolve-last-comments-data.js')
+            const { resolveLastCommentsData } = await import('${{ github.workspace }}/.github/src/resolve-last-comments-data.js')
             
             const resolvedLastCommentsData = await resolveLastCommentsData(
               {github, config: { owner: context.repo.owner, repo: context.repo.repo }},
@@ -155,29 +177,82 @@ jobs:
           access-key-id: ${{ secrets.ARTIFACT_ACCESS_KEY_ID }}
           secret-access-key: ${{ secrets.ARTIFACT_SECRET_ACCESS_KEY }}
           region: ${{ secrets.ARTIFACT_REGION }}
-          source-path: '${{ steps.resolved_artifact_url.outputs.result }}'
+          source-path: ${{ steps.resolved_artifact_url.outputs.result }}
           target-path: './${{ steps.resolved_artifact.outputs.filename }}'
           transfer-directory: false
 
-      - name: Unzip artifact
+      - name: Resolve artifact
+        id: resolved_artifact
+        uses: ./.github/actions/resolve-artifact
+        with:
+          issue-number: ${{ steps.resolved_issue_number.outputs.issue-number }}
+          sha: ${{ github.sha }}
+          bucket-name: ${{ env.ARTIFACT_BUCKET_NAME }}
+
+      - name: Inspect filesystem
+        run: |
+          tree -a -L 2
+
+      - name: Extract artifact
         uses: ./.github/actions/package-artifact
         with:
-          action: 'unzip'
-          source: './${{ steps.resolved_artifact.outputs.filename }}'
-          target: '${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}'
+          action: 'extract'
+          source: ./${{ steps.resolved_artifact.outputs.filename }}
+          target: './dist'
+
+      - name: Inspect filesystem
+        run: |
+          tree -a -L 2
+
+      - name: Update version file
+        uses: ./.github/actions/update-version
+        with:
+          environment-name: ${{ steps.environment_values.outputs.environment-name }}
+          deployment-timestamp: ${{ steps.environment_values.outputs.current-datetime }}
+
+      - name: Define api url
+        uses: ./.github/actions/replace-string-in-file
+        with:
+          filepath: ${{ env.DEFAULT_API_URL_PLACEHOLDER_FILEPATH }}
+          search: ${{ env.DEFAULT_API_URL_PLACEHOLDER }}
+          replacement: ${{ steps.environment_values.outputs.api-url }}
 
       - name: Deploy artifact
-        uses: ./.github/actions/aws-s3-artifact-transfer # @warn make us of `sync --delete` aws cli action
+        uses: ./.github/actions/aws-s3-artifact-transfer
         with:
-          access-key-id: ${{ secrets.ARTIFACT_ACCESS_KEY_ID }}
-          secret-access-key: ${{ secrets.ARTIFACT_SECRET_ACCESS_KEY }}
+          access-key-id: ${{ secrets.APP_S3_ACCESS_KEY_ID_STAGING }}
+          secret-access-key: ${{ secrets.APP_S3_SECRET_ACCESS_KEY_STAGING }}
           region: ${{ secrets.ARTIFACT_REGION }}
           source-path: '${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}'
-          target-path: 's3://${{ env.APP_S3_BUCKET_NAME_STAGING }}'
+          target-path: s3://${{ env.APP_S3_BUCKET_NAME_STAGING }}
           transfer-directory: true
 
-      # - name: Check deployed ?
+      - name: Check deployment
+        uses: ./.github/actions/check-deployment
+        with:
+          app-url: ${{ env.APP_URL_STAGING }}
+
       # - name: Tag issue with failed deployment
+      - name: Label issue on failure
+        if: failure()
+        run: |
+          echo 'ERROR: I run only on failure'
+          ls -al ./dist
+          tree -a -L 3
+          exit 1
+
+      - name: Label issue on failure
+        uses: actions/github-script@v6
+        if: failure()
+        with:
+          result-encoding: string
+          script: |
+            const issue = await github.rest.issues.addLabels({
+                owner: issueConfig.owner,
+                repo: issueConfig.repo,
+                issue_number: parseInt( issueConfig.issueNumber),
+                labels: ['deployment:failed:${{ steps.environment_values.outputs.environment-name }}']
+            })
 
       - name: Tag artifact
         uses: ./.github/actions/add-environment-datetime-tag
@@ -190,7 +265,7 @@ jobs:
 #  deploy_to_production:
 #    name: Deploy UI to production
 #    runs-on: ubuntu-latest
-#    if: github.event_name == 'push'
+#    # if: github.event_name == 'push'
 #    needs: [build_and_test,deploy_to_staging]
 #    steps:
 #      - uses: actions/checkout@v2
