@@ -1,0 +1,129 @@
+name: space control panel - UI
+
+on:
+  push:
+    branches: [ main ]
+
+  pull_request:
+    branches: [ main ]
+
+  workflow_dispatch:
+
+env:
+  ARTIFACT_NAME: 'ui artifact'
+  ARTIFACT_RETENTION_DAYS: 30
+  ARTIFACT_BUILD_TARGET_FILEPATH: './dist/'
+  ARTIFACT_BUCKET_NAME: 'space-control-panel-artifacts'
+  #  ARTIFACT_ACCESS_KEY_ID: @info needs to be defined in 'github > Settings > Secrets > Actions'
+  #  ARTIFACT_SECRET_ACCESS_KEY: @info needs to be defined in 'github > Settings > Secrets > Actions'
+
+  DEFAULT_API_URL_PLACEHOLDER_FILEPATH: ./dist/index.html
+  DEFAULT_API_URL_PLACEHOLDER: '%%API_URL_PLACEHOLDER%%'
+
+  NODE_VERSION: '14.18.2'
+
+  API_URL_PRODUCTION: https://api.ufostart.com
+  APP_URL_PRODUCTION: https://space-control-panel.ufostart.com
+  TAG_NAME_PRODUCTION: production
+  APP_S3_BUCKET_NAME_PRODUCTION: space-control-panel.ufostart.com
+  #  APP_S3_ACCESS_KEY_ID_PRODUCTION: @info needs to be defined in 'github > Settings > Secrets > Actions'
+  #  APP_S3_SECRET_ACCESS_KEY_PRODUCTION: @info needs to be defined in 'github > Settings > Secrets > Actions'
+
+  API_URL_STAGING: https://staging.api.ufostart.com
+  APP_URL_STAGING: https://staging-space-control-panel.ufostart.com
+  TAG_NAME_STAGING: staging
+  APP_S3_BUCKET_NAME_STAGING: staging-space-control-panel.ufostart.com
+  #  APP_S3_ACCESS_KEY_ID_STAGING: @info needs to be defined in 'github > Settings > Secrets > Actions'
+  #  APP_S3_SECRET_ACCESS_KEY_STAGING: @info needs to be defined in 'github > Settings > Secrets > Actions'
+
+jobs:
+  build_and_test:
+    name: Build and Test UI
+    runs-on: ubuntu-latest
+    if: endsWith(github.ref, '/main') != true
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Prepare environment values
+        id: environment_values
+        uses: ./.github/actions/define-environment-values
+        with:
+          api-url: ${{ env.API_URL_STAGING }}
+          app-url: ${{ env.APP_URL_STAGING }}
+
+      - name: Define node version
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: debug variables
+        run: |
+          echo "event_name:     '${{github.event_name}}"
+          echo "api url:        '${{ steps.environment_values.outputs.api-url }}'"
+          echo "app url:        '${{ steps.environment_values.outputs.app-url }}'"
+          echo "GITHUB_RUN_ID:  '$GITHUB_RUN_ID'"
+          echo "GITHUB_SHA:     '${{github.event.pull_request.head.sha}}'"
+
+      - name: Resolve issue number
+        id: resolved_issue_number
+        uses: ./.github/actions/resolve-issue-number
+
+      - name: Resolve artifact
+        id: resolved_artifact
+        uses: ./.github/actions/resolve-artifact
+        with:
+          issue-number: ${{ steps.resolved_issue_number.outputs.issue-number }}
+          sha: ${{ github.event.pull_request.head.sha }}
+          bucket-name: ${{ env.ARTIFACT_BUCKET_NAME }}
+
+      - name: Build UI artifact
+        uses: ./.github/actions/build-ui-artifact
+        with:
+          target-directory: ${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}
+
+      - name: Create version file
+        uses: ./.github/actions/create-version
+        with:
+          issue-number: ${{ steps.resolved_issue_number.outputs.issue-number }}
+          sha: ${{github.event.pull_request.head.sha}}
+          built-at: ${{ steps.environment_values.outputs.current-datetime }}
+
+      - name: Compress artifact
+        uses: ./.github/actions/package-artifact
+        with:
+          action: 'compress'
+          source: ${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}
+          target: '${{ steps.resolved_artifact.outputs.filename }}'
+
+      - name: Publish artifact to S3 artifact store
+        uses: ./.github/actions/aws-s3-artifact-transfer
+        with:
+          access-key-id: ${{ secrets.ARTIFACT_ACCESS_KEY_ID }}
+          secret-access-key: ${{ secrets.ARTIFACT_SECRET_ACCESS_KEY }}
+          region: ${{ secrets.ARTIFACT_REGION }}
+          source-path: './${{ steps.resolved_artifact.outputs.filename }}'
+          target-path: '${{ steps.resolved_artifact.outputs.s3-url }}'
+          transfer-directory: false
+
+      - name: Create artifact comment
+        id: create_artifact_comment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { default: createCommentWithPayload } = await import('${{ github.workspace }}/.github/src/create-comment-with-payload.js')
+
+            const issueMessage = [
+              '**Artifact created** ${{ steps.resolved_artifact.outputs.filename }}',
+              '                     ${{ steps.resolved_artifact.outputs.s3-url }}'
+            ].join('\r\n')
+
+            const issueData = {
+                artifactUrl: '${{ steps.resolved_artifact.outputs.s3-url }}',
+            }
+
+            await createCommentWithPayload(
+                {github, config: { owner: context.repo.owner, repo: context.repo.repo }},
+                ${{ steps.resolved_issue_number.outputs.issue-number }},
+                issueMessage,
+                issueData,
+            )
