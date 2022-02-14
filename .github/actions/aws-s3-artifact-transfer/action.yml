@@ -16,6 +16,9 @@ inputs:
   target-path:
     required: true
     description: "Target filepath for s3 start with 's3://"
+  transfer-directory:
+    required: true
+    description: "is source a directory"
 runs:
   using: "composite"
   steps:
@@ -27,8 +30,13 @@ runs:
         aws-region: ${{ inputs.region }}
 
     - name: Transfer directory to AWS S3
+      if: ${{ inputs.transfer-directory == 'false' }}
       shell: bash
       run: |
-        pwd
-        ls -al  
         aws s3 cp '${{ inputs.source-path }}' '${{ inputs.target-path }}'
+
+    - name: Transfer directory to AWS S3
+      if: ${{ inputs.transfer-directory == 'true' }}
+      shell: bash
+      run: |
+        aws s3 sync '${{ inputs.source-path }}' '${{ inputs.target-path }}' --delete
