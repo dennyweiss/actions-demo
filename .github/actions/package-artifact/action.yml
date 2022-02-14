@@ -14,13 +14,16 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Zip source
-      if: ${{ inputs.action == 'zip' }}
-      uses: montudor/action-zip@v1
-      with:
-          args: zip -qq -r "${{ inputs.target }}" "${{ inputs.source }}"
-    - name: unZip source
-      if: ${{ inputs.action == 'unzip' }}
-      uses: montudor/action-zip@v1
-      with:
-          args: unzip -qq "${{ inputs.source }}" -d "${{ inputs.target }}"
+    - name: Compress source
+      if: ${{ inputs.action == 'compress' }}
+      shell: bash
+      run: |
+        cd ${{ inputs.source }}
+        tar -zcvf ../${{ target }} .
+
+    - name: Compress source
+      if: ${{ inputs.action == 'extract' }}
+      shell: bash
+      run: |
+        mkdir -p ${{ inputs.target }}
+        tar -zxvf ${{ inputs.source }} ${{ inputs.target }}
