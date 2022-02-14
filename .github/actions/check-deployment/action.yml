@@ -1,0 +1,15 @@
+  name: 'Check deployment'
+  description: ''
+
+  inputs:
+    app-url:
+      description: 'Environment Url'
+      required: true
+
+  runs:
+    using: composite
+    steps:
+      - id: check_environment
+        shell: bash
+        run: |
+          curl -fsSL "${{ inputs.app-url }}"

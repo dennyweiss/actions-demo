@@ -2,7 +2,7 @@
   description: ''
 
   inputs:
-    environment:
+    environment-name:
       required: true
       description: ''
     deployment-timestamp:
@@ -30,7 +30,7 @@
         with:
           filepath: ${{ steps.workflow_defaults.outputs.version-file }}
           search: '%%ENVIRONMENT%%'
-          replacement: ${{ inputs.environment }}
+          replacement: ${{ inputs.environment-name }}
       - name: Define deployment time
         uses: ./.github/actions/replace-string-in-file
         with:
