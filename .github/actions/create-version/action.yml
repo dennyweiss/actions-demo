@@ -1,0 +1,51 @@
+  name: 'Create version file'
+  description: ''
+
+  inputs:
+    issue-number:
+      required: true
+      description: ''
+    sha:
+      required: true
+      description: ''
+    built-at:
+      required: true
+      description: ''
+
+  runs:
+    using: 'composite'
+    steps:
+      - id: workflow_defaults
+        shell: bash
+        run: |
+          VERSION_FILE_TEMPLATE='./version.template'
+          VERSION_FILE='./dist/__version.json'
+          echo "::set-output name=version-file-template::$VERSION_FILE_TEMPLATE"
+          echo "::set-output name=version-file::$VERSION_FILE"
+
+      - id: ensure_version_file_exists
+        shell: bash
+        run: |
+          if [[ ! -f ${{ steps.workflow_defaults.outputs.version-file }} ]]; then
+            cp -f ${{ steps.workflow_defaults.outputs.version-file-template }} ${{ steps.workflow_defaults.outputs.version-file }} 
+          fi
+      - name: Define sha
+        uses: ./.github/actions/replace-string-in-file
+        with:
+          filepath: ${{ steps.workflow_defaults.outputs.version-file }}
+          search: '%%SHA%%'
+          replacement: ${{ inputs.sha }}
+
+      - name: Define issue number
+        uses: ./.github/actions/replace-string-in-file
+        with:
+          filepath: ${{ steps.workflow_defaults.outputs.version-file }}
+          search: '%%ISSUE_NUMBER%%'
+          replacement: ${{ inputs.issue-number }}
+
+      - name: Define built at time
+        uses: ./.github/actions/replace-string-in-file
+        with:
+          filepath: ${{ steps.workflow_defaults.outputs.version-file }}
+          search: '%%BUILT_AT%%'
+          replacement: ${{ inputs.built-at }}
