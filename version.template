@@ -1,0 +1,7 @@
+{
+  "environment": "%%ENVIRONMENT%%",
+  "commit": "%%SHA%%",
+  "issue_number": "%%ISSUE_NUMBER%%",
+  "built_at": "%%BUILD_AT%%",
+  "deployment_timestamp": "%%DEPLOYMENT_TIMESTAMP%%"
+}

@@ -1,0 +1,11 @@
+  name: Build UI artifact
+  description:
+  runs:
+    using: "composite"
+    steps:
+      - uses: actions/checkout@v2
+      - id: build_and_test
+        shell: bash
+        run: |
+          echo 'building'
+          mkdir -p dist

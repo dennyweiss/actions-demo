@@ -81,6 +81,16 @@ jobs:
           sha: ${{ github.sha }}
           bucket-name: ${{ env.ARTIFACT_BUCKET_NAME }}
 
+      - name: Build UI artifact
+        uses: ./.github/actions/build-ui-artifact
+
+      - name: Create version file
+        uses: ./.github/actions/create-version
+        with:
+          issue-number: ${{ steps.resolved_issue_number.outputs.issue-number }}
+          sha: ${{ github.sha }}
+          built-at: ${{ steps.environment_values.outputs.current-datetime }}
+
       - name: Zip artifact
         uses: ./.github/actions/package-artifact
         with:
@@ -136,6 +146,7 @@ jobs:
         with:
           api-url: ${{ env.API_URL_STAGING }}
           app-url: ${{ env.APP_URL_STAGING }}
+          environment: staging
 
       - name: Resolve issue number
         id: resolved_issue_number
@@ -180,8 +191,21 @@ jobs:
           source: ./${{ steps.resolved_artifact.outputs.filename }}
           target: '${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}'
 
+      - name: Update version file
+        uses: ./.github/actions/update-version
+        with:
+          environment: ${{ steps.environment_values.outputs.environment }}
+          deployment-timestamp: ${{ steps.environment_values.outputs.current-datetime }}
+
+      - name: Define api url
+        uses: ./.github/actions/replace-string-in-file
+        with:
+          filepath: ${{ env.DEFAULT_API_URL_PLACEHOLDER_FILEPATH }}
+          search: ${{ env.DEFAULT_API_URL_PLACEHOLDER }}
+          replacement: ${{ steps.environment_values.outputs.api-url }}
+
       - name: Deploy artifact
-        uses: ./.github/actions/aws-s3-artifact-transfer # @warn make us of `sync --delete` aws cli action
+        uses: ./.github/actions/aws-s3-artifact-transfer
         with:
           access-key-id: ${{ secrets.APP_S3_ACCESS_KEY_ID_STAGING }}
           secret-access-key: ${{ secrets.APP_S3_SECRET_ACCESS_KEY_STAGING }}
