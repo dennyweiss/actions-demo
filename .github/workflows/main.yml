@@ -220,6 +220,7 @@ jobs:
         if: failure()
         run: |
           echo 'ERROR: I run only on failure'
+          tree -a -L 2
 
       - name: Tag artifact
         uses: ./.github/actions/add-environment-datetime-tag
