@@ -93,6 +93,7 @@ jobs:
 
       - name: Inspect filesystem
         run: |
+          ls -al ./dist
           tree -a -L 2
 
       - name: Zip artifact
@@ -238,12 +239,14 @@ jobs:
           echo 'ERROR: I run only on failure'
           ls -al ./dist
           tree -a -L 3
+          exit 1
 
       - name: Label issue on failure
         uses: actions/github-script@v6
         with:
           result-encoding: string
           script: |
+            console.log('${{ failure() }}')
             const issue = await github.rest.issues.addLabels({
                 owner: issueConfig.owner,
                 repo: issueConfig.repo,
