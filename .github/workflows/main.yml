@@ -61,7 +61,7 @@ jobs:
           echo "api url:        '${{ steps.environment_values.outputs.api-url }}'"
           echo "app url:        '${{ steps.environment_values.outputs.app-url }}'"
           echo "GITHUB_RUN_ID:  '$GITHUB_RUN_ID'"
-          echo "GITHUB_SHA:     '$GITHUB_SHA'"
+          echo "GITHUB_SHA:     '${{github.event.pull_request.head.sha}}'"
 
       - name: Inspect filesystem
         run: |
@@ -76,7 +76,7 @@ jobs:
         uses: ./.github/actions/resolve-artifact
         with:
           issue-number: ${{ steps.resolved_issue_number.outputs.issue-number }}
-          sha: ${{ github.sha }}
+          sha: ${{ github.event.pull_request.head.sha }}
           bucket-name: ${{ env.ARTIFACT_BUCKET_NAME }}
 
       - name: Build UI artifact
@@ -88,7 +88,7 @@ jobs:
         uses: ./.github/actions/create-version
         with:
           issue-number: ${{ steps.resolved_issue_number.outputs.issue-number }}
-          sha: ${{ github.sha }}
+          sha: ${{github.event.pull_request.head.sha}}
           built-at: ${{ steps.environment_values.outputs.current-datetime }}
 
       - name: Inspect filesystem
@@ -197,7 +197,7 @@ jobs:
         uses: ./.github/actions/package-artifact
         with:
           action: 'extract'
-          source: ./${{ steps.resolved_artifact.outputs.filename }}
+          source: ./artifact-space-control-panel-ui-${{ steps.resolved_issue_number.outputs.issue-number }}-*.tar.gz
           target: './dist'
 
       - name: Inspect filesystem

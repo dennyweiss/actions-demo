@@ -21,7 +21,7 @@ runs:
         cd ${{ inputs.source }}
         tar -zcvf ../${{ inputs.target }} .
 
-    - name: Compress source
+    - name: Extract source
       if: ${{ inputs.action == 'extract' }}
       shell: bash
       run: |
