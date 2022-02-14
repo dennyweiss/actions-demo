@@ -13,4 +13,4 @@
         shell: bash
         run: |
           echo 'building'
-          mkdir -p ${{ inputs.target-directory }}
+          mv ./src ./dist

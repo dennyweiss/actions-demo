@@ -197,7 +197,7 @@ jobs:
         with:
           action: 'unzip'
           source: ./${{ steps.resolved_artifact.outputs.filename }}
-          target: '${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}'
+          target: './'
 
       - name: Inspect filesystem
         run: |
