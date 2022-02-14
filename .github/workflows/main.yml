@@ -93,7 +93,6 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const issueNumber = process.env.ISSUE_NUMBER
             await github.rest.issues.createComment({
               issue_number: parseInt('${{ steps.resolved_issue_number.outputs.issue-number }}'),
               owner: context.repo.owner,
@@ -101,34 +100,22 @@ jobs:
               body: "Artifact created: ${{ steps.resolved_artifact.outputs.s3-url }}"
             })
 
-      - name: Find Comments
+      - name: Create artifact comment
         id: create_artifact_comment
         uses: actions/github-script@v6
         with:
           script: |
-            const issueNumber = process.env.ISSUE_NUMBER
-
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: parseInt('${{ steps.resolved_issue_number.outputs.issue-number }}'),
-            })
-
-            console.log(comments)
-            
-            const actionComments = comments.data.filter(
-              (comment) => comment.body.indexOf("Artifact created: ") >= 0
-            );
-            
-            if (!actionComments || !actionComments.data || !Array.isArray(actionComments.data) || actionComments.data.length === 0) {
-              throw new Error("No comment found that has the right pattern"); # @todo something is broken here
+            const { default: createCommentWithPayload } = await import('${{ github.workspace }}/.github/src/create-comment-with-payload.js')
+            const issueMessage = `Test Comment with payload`
+            const issueData = {
+                artifactUrl: '${{ steps.resolved_artifact.outputs.s3-url }}',
             }
-            
-            return actionComments[actionComments.length - 1].body.replace("Artifact created: ", "").trim()
-
-      - name: Print
-        run: |
-          echo 'Url: ${{ steps.create_artifact_comment.outputs.result }}'
+            await createCommentWithPayload(
+                {github, config: { owner: context.repo.owner, repo: context.repo.repo }},
+                ${{ steps.resolved_issue_number.outputs.issue-number }},
+                issueMessage,
+                issueData,
+            )
 
 #  deploy_to_staging:
 #    name: Deploy UI to staging
