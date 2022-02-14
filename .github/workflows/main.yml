@@ -238,6 +238,18 @@ jobs:
           echo 'ERROR: I run only on failure'
           tree -a -L 3
 
+      - name: Label issue on failure
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            const issue = await github.rest.issues.addLabels({
+                owner: issueConfig.owner,
+                repo: issueConfig.repo,
+                issue_number: parseInt( issueConfig.issueNumber),
+                labels: ['deployment:failed:${{ steps.environment_values.outputs.environment-name }}']
+            })
+
       - name: Tag artifact
         uses: ./.github/actions/add-environment-datetime-tag
         if: always()
