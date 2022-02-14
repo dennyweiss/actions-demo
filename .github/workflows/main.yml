@@ -63,10 +63,6 @@ jobs:
           echo "GITHUB_RUN_ID:  '$GITHUB_RUN_ID'"
           echo "GITHUB_SHA:     '${{github.event.pull_request.head.sha}}'"
 
-      - name: Inspect filesystem
-        run: |
-          tree -a -L 2
-
       - name: Resolve issue number
         id: resolved_issue_number
         uses: ./.github/actions/resolve-issue-number
@@ -90,11 +86,6 @@ jobs:
           issue-number: ${{ steps.resolved_issue_number.outputs.issue-number }}
           sha: ${{github.event.pull_request.head.sha}}
           built-at: ${{ steps.environment_values.outputs.current-datetime }}
-
-      - name: Inspect filesystem
-        run: |
-          ls -al ./dist
-          tree -a -L 2
 
       - name: Compress artifact
         uses: ./.github/actions/package-artifact
@@ -135,7 +126,6 @@ jobs:
                 issueMessage,
                 issueData,
             )
-
 
   deploy_to_staging:
     name: Deploy UI to staging
@@ -189,20 +179,12 @@ jobs:
           sha: ${{ github.sha }}
           bucket-name: ${{ env.ARTIFACT_BUCKET_NAME }}
 
-      - name: Inspect filesystem
-        run: |
-          tree -a -L 2
-
       - name: Extract artifact
         uses: ./.github/actions/package-artifact
         with:
           action: 'extract'
           source: ./artifact-space-control-panel-ui-${{ steps.resolved_issue_number.outputs.issue-number }}-*.tar.gz
           target: './dist'
-
-      - name: Inspect filesystem
-        run: |
-          tree -a -L 2
 
       - name: Update version file
         uses: ./.github/actions/update-version
@@ -232,13 +214,9 @@ jobs:
         with:
           app-url: ${{ env.APP_URL_STAGING }}
 
-      # - name: Tag issue with failed deployment
-      - name: Label issue on failure
-        if: failure()
+      - name: Fail
         run: |
-          echo 'ERROR: I run only on failure'
-          ls -al ./dist
-          tree -a -L 3
+          echo "ERROR: Lets fail that thing"
           exit 1
 
       - name: Label issue on failure
@@ -254,6 +232,43 @@ jobs:
                 labels: ['deployment:failed:${{ steps.environment_values.outputs.environment-name }}']
             })
 
+      - name: Post successful deployed
+        uses: actions/github-script@v6
+        if: ${{ success() }}
+        with:
+          result-encoding: string
+          script: |
+            const { default: createCommentWithPayload } = await import('${{ github.workspace }}/.github/src/create-comment-with-payload.js')
+
+            const issueMessage = [
+              '**${{ steps.environment_values.outputs.environment-name }} environment successful deployed**',
+              '[${{ env.APP_URL_STAGING }}](${{ env.APP_URL_STAGING }})'
+            ].join('\r\n')
+
+            await createCommentWithPayload(
+                {github, config: { owner: context.repo.owner, repo: context.repo.repo }},
+                ${{ steps.resolved_issue_number.outputs.issue-number }},
+                issueMessage,
+                {},
+            )
+
+      - name: Cleanup labels
+        uses: actions/github-script@v6
+        if: failure()
+        with:
+          result-encoding: string
+          script: |
+            try {
+              await github.rest.issues.removeLabel({
+                  owner: issueConfig.owner,
+                  repo: issueConfig.repo,
+                  issue_number: parseInt( ${{ steps.resolved_issue_number.outputs.issue-number }} ),
+                  name: 'deployment:failed:${{ steps.environment_values.outputs.environment-name }}'
+              })
+            } catch (e) {
+                console.log('label was already removed')
+            }
+            
       - name: Tag artifact
         uses: ./.github/actions/add-environment-datetime-tag
         if: always()
