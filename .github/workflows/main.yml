@@ -90,26 +90,21 @@ jobs:
           target-path: '${{ steps.resolved_artifact.outputs.s3-url }}'
 
       - name: Create artifact comment
-        uses: actions/github-script@v6
-        with:
-          script: |
-            await github.rest.issues.createComment({
-              issue_number: parseInt('${{ steps.resolved_issue_number.outputs.issue-number }}'),
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: "Artifact created: ${{ steps.resolved_artifact.outputs.s3-url }}"
-            })
-
-      - name: Create artifact comment
         id: create_artifact_comment
         uses: actions/github-script@v6
         with:
           script: |
             const { default: createCommentWithPayload } = await import('${{ github.workspace }}/.github/src/create-comment-with-payload.js')
-            const issueMessage = `Test Comment with payload`
+
+            const issueMessage = [
+              '**Artifact created** ${{ steps.resolved_artifact.outputs.filename }}',
+              '                     ${{ steps.resolved_artifact.outputs.s3-url }}'
+            ].join('\r\n')
+
             const issueData = {
                 artifactUrl: '${{ steps.resolved_artifact.outputs.s3-url }}',
             }
+
             await createCommentWithPayload(
                 {github, config: { owner: context.repo.owner, repo: context.repo.repo }},
                 ${{ steps.resolved_issue_number.outputs.issue-number }},
