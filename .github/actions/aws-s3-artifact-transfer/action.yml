@@ -33,10 +33,10 @@ runs:
       if: ${{ inputs.transfer-directory == 'false' }}
       shell: bash
       run: |
-        aws s3 cp '${{ inputs.source-path }}' '${{ inputs.target-path }}'
+        aws s3 cp ${{ inputs.source-path }} ${{ inputs.target-path }}
 
     - name: Transfer directory to AWS S3
       if: ${{ inputs.transfer-directory == 'true' }}
       shell: bash
       run: |
-        aws s3 sync '${{ inputs.source-path }}' '${{ inputs.target-path }}' --delete
+        aws s3 sync ${{ inputs.source-path }} ${{ inputs.target-path }} --delete
