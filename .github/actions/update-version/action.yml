@@ -23,7 +23,8 @@
         shell: bash
         run: |
           if [[ ! -f ${{ steps.workflow_defaults.outputs.version-file }} ]]; then
-            cp -f ${{ steps.workflow_defaults.outputs.version-file-template }} ${{ steps.workflow_defaults.outputs.version-file }} 
+            echo 'INFO:  should delete ./dist/__version.json, but do nothing'
+#            cp -f ${{ steps.workflow_defaults.outputs.version-file-template }} ${{ steps.workflow_defaults.outputs.version-file }}
           fi
       - name: Define environment
         uses: ./.github/actions/replace-string-in-file

@@ -23,14 +23,14 @@ env:
   NODE_VERSION: '14.18.2'
 
   API_URL_PRODUCTION: https://api.ufostart.com
-  APP_URL_PRODUCTION: https://space-control-center.ufostart.com
+  APP_URL_PRODUCTION: https://space-control-panel.ufostart.com
   TAG_NAME_PRODUCTION: production
   APP_S3_BUCKET_NAME_PRODUCTION: space-control-panel.ufostart.com
   #  APP_S3_ACCESS_KEY_ID_PRODUCTION: @info needs to be defined in 'github > Settings > Secrets > Actions'
   #  APP_S3_SECRET_ACCESS_KEY_PRODUCTION: @info needs to be defined in 'github > Settings > Secrets > Actions'
 
   API_URL_STAGING: https://staging.api.ufostart.com
-  APP_URL_STAGING: https://staging-space-control-center.ufostart.com
+  APP_URL_STAGING: https://staging-space-control-panel.ufostart.com
   TAG_NAME_STAGING: staging
   APP_S3_BUCKET_NAME_STAGING: staging-space-control-panel.ufostart.com
   #  APP_S3_ACCESS_KEY_ID_STAGING: @info needs to be defined in 'github > Settings > Secrets > Actions'
@@ -209,7 +209,6 @@ jobs:
           source-path: '${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}'
           target-path: s3://${{ env.APP_S3_BUCKET_NAME_STAGING }}
           transfer-directory: true
-
 
       - name: Check deployment
         uses: ./.github/actions/check-deployment
