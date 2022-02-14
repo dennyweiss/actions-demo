@@ -1,0 +1,39 @@
+  name: 'Create version file'
+  description: ''
+
+  inputs:
+    environment-name:
+      required: true
+      description: ''
+    deployment-timestamp:
+      required: true
+      description: ''
+
+  runs:
+    using: 'composite'
+    steps:
+      - id: workflow_defaults
+        shell: bash
+        run: |
+          VERSION_FILE_TEMPLATE='./version.template'
+          VERSION_FILE='./dist/__version.json'
+          echo "::set-output name=version-file-template::$VERSION_FILE_TEMPLATE"
+          echo "::set-output name=version-file::$VERSION_FILE"
+      - id: ensure_version_file_exists
+        shell: bash
+        run: |
+          if [[ ! -f ${{ steps.workflow_defaults.outputs.version-file }} ]]; then
+            echo 'INFO:  should delete ./dist/__version.json, but do nothing'
+          fi
+      - name: Define environment
+        uses: ./.github/actions/replace-string-in-file
+        with:
+          filepath: ${{ steps.workflow_defaults.outputs.version-file }}
+          search: '%%ENVIRONMENT%%'
+          replacement: ${{ inputs.environment-name }}
+      - name: Define deployment time
+        uses: ./.github/actions/replace-string-in-file
+        with:
+          filepath: ${{ steps.workflow_defaults.outputs.version-file }}
+          search: '%%DEPLOYMENT_TIMESTAMP%%'
+          replacement: ${{ inputs.deployment-timestamp }}
