@@ -1,0 +1,16 @@
+  name: Build UI artifact
+  description: ''
+
+  inputs:
+    target-directory:
+      description: ''
+      required: true
+  runs:
+    using: "composite"
+    steps:
+      - uses: actions/checkout@v2
+      - id: build_and_test
+        shell: bash
+        run: |
+          echo 'building'
+          mkdir -p ${{ inputs.target-directory }}
