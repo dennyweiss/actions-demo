@@ -157,7 +157,7 @@ jobs:
           access-key-id: ${{ secrets.ARTIFACT_ACCESS_KEY_ID }}
           secret-access-key: ${{ secrets.ARTIFACT_SECRET_ACCESS_KEY }}
           region: ${{ secrets.ARTIFACT_REGION }}
-          source-path: '${{ steps.resolved_artifact_url.outputs.result }}'
+          source-path: ${{ steps.resolved_artifact_url.outputs.result }}
           target-path: './${{ steps.resolved_artifact.outputs.filename }}'
           transfer-directory: false
 
@@ -175,7 +175,7 @@ jobs:
           secret-access-key: ${{ secrets.ARTIFACT_SECRET_ACCESS_KEY }}
           region: ${{ secrets.ARTIFACT_REGION }}
           source-path: '${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}'
-          target-path: 's3://${{ env.APP_S3_BUCKET_NAME_STAGING }}'
+          target-path: s3://${{ env.APP_S3_BUCKET_NAME_STAGING }}
           transfer-directory: true
 
       # - name: Check deployed ?
