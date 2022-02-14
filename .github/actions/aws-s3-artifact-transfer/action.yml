@@ -30,13 +30,13 @@ runs:
         aws-region: ${{ inputs.region }}
 
     - name: Transfer directory to AWS S3
-      if: ${{ input.transfer-directory == 'false' }}
+      if: ${{ inputs.transfer-directory == 'false' }}
       shell: bash
       run: |
         aws s3 cp '${{ inputs.source-path }}' '${{ inputs.target-path }}'
 
     - name: Transfer directory to AWS S3
-      if: ${{ input.transfer-directory == 'true' }}
+      if: ${{ inputs.transfer-directory == 'true' }}
       shell: bash
       run: |
         aws s3 sync '${{ inputs.source-path }}' '${{ inputs.target-path }}' --delete
