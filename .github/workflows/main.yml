@@ -236,6 +236,7 @@ jobs:
         if: failure()
         run: |
           echo 'ERROR: I run only on failure'
+          ls -al ./dist
           tree -a -L 3
 
       - name: Label issue on failure
