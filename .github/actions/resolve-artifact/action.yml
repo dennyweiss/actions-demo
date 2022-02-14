@@ -1,0 +1,34 @@
+  name: 'Resolves artifact'
+  description: ''
+  inputs:
+    issue-number:
+      required: true
+      description: 'Referenced Issue Number'
+    sha:
+      required: true
+      description: 'current sha'
+    bucket-name:
+      required: true
+      description: 'bucket name'
+  outputs:
+    filename:
+      description: 'Filename of the artifact'
+      value: ${{ steps.resolve_artifact_filename.outputs.result }}
+    s3-url:
+      description: 's3 url for the artifact'
+      value: 's3://${{ inputs.bucket-name  }}/${{ steps.resolve_artifact_filename.outputs.result }}'
+  runs:
+    using: composite
+    steps:
+      - name: Resolve artfact name
+        uses: actions/github-script@v6
+        id: resolve_artifact_filename
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue-number }}
+          SHA: ${{ inputs.sha }}
+        with:
+          result-encoding: string
+          script: |
+            const issueNumber = process.env.ISSUE_NUMBER
+            const sha = process.env.SHA
+            return `artifact-${issueNumber}-${sha}.zip`
