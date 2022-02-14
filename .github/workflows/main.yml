@@ -40,7 +40,7 @@ jobs:
   build_and_test:
     name: Build and Test UI
     runs-on: ubuntu-latest
-    if: endsWith(github.ref, '/main')
+    if: endsWith(github.ref, '/main') != true
     steps:
       - uses: actions/checkout@v2
 
