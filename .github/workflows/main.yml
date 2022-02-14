@@ -221,14 +221,14 @@ jobs:
 
       - name: Label issue on failure
         uses: actions/github-script@v6
-        if: failure()
+        if: ${{ failure() }}
         with:
           result-encoding: string
           script: |
             const issue = await github.rest.issues.addLabels({
-                owner: issueConfig.owner,
-                repo: issueConfig.repo,
-                issue_number: parseInt( issueConfig.issueNumber),
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: parseInt( ${{ steps.resolved_issue_number.outputs.issue-number }} ),
                 labels: ['deployment:failed:${{ steps.environment_values.outputs.environment-name }}']
             })
 
@@ -254,14 +254,14 @@ jobs:
 
       - name: Cleanup labels
         uses: actions/github-script@v6
-        if: failure()
+        if: ${{ success() }}
         with:
           result-encoding: string
           script: |
             try {
               await github.rest.issues.removeLabel({
-                  owner: issueConfig.owner,
-                  repo: issueConfig.repo,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
                   issue_number: parseInt( ${{ steps.resolved_issue_number.outputs.issue-number }} ),
                   name: 'deployment:failed:${{ steps.environment_values.outputs.environment-name }}'
               })
@@ -271,48 +271,158 @@ jobs:
             
       - name: Tag artifact
         uses: ./.github/actions/add-environment-datetime-tag
-        if: always()
+        if: ${{ always() }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           environment-name: ${{ env.TAG_NAME_STAGING }}
           datetime: ${{ steps.environment_values.outputs.current-datetime }}
 
-#  deploy_to_production:
-#    name: Deploy UI to production
-#    runs-on: ubuntu-latest
-#    # if: github.event_name == 'push'
-#    needs: [build_and_test,deploy_to_staging]
-#    steps:
-#      - uses: actions/checkout@v2
-#
-#      - name: Prepare environment values
-#        id: environment_values
-#        uses: ./.github/actions/define-environment-values
-#        with:
-#          api-url: ${{ env.API_URL_PRODUCTION }}
-#          app-url: ${{ env.APP_URL_PRODUCTION }}
-#
-#      - name: Fetch UI build artifact
-#        uses: actions/download-artifact@v2
-#        with:
-#          name: ${{ env.ARTIFACT_NAME }}
-#          path: ${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}
-#
-#      - name: Define api url
-#        uses: ./.github/actions/replace-string-in-file
-#        with:
-#          filepath: ${{ env.DEFAULT_API_URL_PLACEHOLDER_FILEPATH }}
-#          search: ${{ env.DEFAULT_API_URL_PLACEHOLDER }}
-#          replacement: ${{ steps.environment_values.outputs.api-url }}
-#
-#      - name: Deploy artifact
-#        run: |
-#          cat '${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}/artifact.txt'
-#
-#      - name: Tag artifact
-#        uses: ./.github/actions/add-environment-datetime-tag
-#        if: always()
-#        with:
-#          github-token: ${{ secrets.GITHUB_TOKEN }}
-#          environment-name: ${{ env.TAG_NAME_PRODUCTION }}
-#          datetime: ${{ steps.environment_values.outputs.current-datetime }}
+  deploy_to_production:
+    name: Deploy UI to production
+    runs-on: ubuntu-latest
+    # if: github.event_name == 'push'
+    needs: [build_and_test,deploy_to_staging]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Prepare environment values
+        id: environment_values
+        uses: ./.github/actions/define-environment-values
+        with:
+          api-url: ${{ env.API_URL_PRODUCTION }}
+          app-url: ${{ env.APP_URL_PRODUCTION }}
+          environment-name: production
+
+      - name: Resolve issue number
+        id: resolved_issue_number
+        uses: ./.github/actions/resolve-issue-number
+
+      - name: Resolve current artifact url
+        id: resolved_artifact_url
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { resolveLastCommentsData } = await import('${{ github.workspace }}/.github/src/resolve-last-comments-data.js')
+            
+            const resolvedLastCommentsData = await resolveLastCommentsData(
+              {github, config: { owner: context.repo.owner, repo: context.repo.repo }},
+              ${{ steps.resolved_issue_number.outputs.issue-number }}
+            )
+            
+            return resolvedLastCommentsData?.artifactUrl ?? null
+
+      - name: Fetch artifact to S3 artifact store
+        uses: ./.github/actions/aws-s3-artifact-transfer
+        with:
+          access-key-id: ${{ secrets.ARTIFACT_ACCESS_KEY_ID }}
+          secret-access-key: ${{ secrets.ARTIFACT_SECRET_ACCESS_KEY }}
+          region: ${{ secrets.ARTIFACT_REGION }}
+          source-path: ${{ steps.resolved_artifact_url.outputs.result }}
+          target-path: './${{ steps.resolved_artifact.outputs.filename }}'
+          transfer-directory: false
+
+      - name: Resolve artifact
+        id: resolved_artifact
+        uses: ./.github/actions/resolve-artifact
+        with:
+          issue-number: ${{ steps.resolved_issue_number.outputs.issue-number }}
+          sha: ${{ github.sha }}
+          bucket-name: ${{ env.ARTIFACT_BUCKET_NAME }}
+
+      - name: Extract artifact
+        uses: ./.github/actions/package-artifact
+        with:
+          action: 'extract'
+          source: ./artifact-space-control-panel-ui-${{ steps.resolved_issue_number.outputs.issue-number }}-*.tar.gz
+          target: './dist'
+
+      - name: Update version file
+        uses: ./.github/actions/update-version
+        with:
+          environment-name: ${{ steps.environment_values.outputs.environment-name }}
+          deployment-timestamp: ${{ steps.environment_values.outputs.current-datetime }}
+
+      - name: Define api url
+        uses: ./.github/actions/replace-string-in-file
+        with:
+          filepath: ${{ env.DEFAULT_API_URL_PLACEHOLDER_FILEPATH }}
+          search: ${{ env.DEFAULT_API_URL_PLACEHOLDER }}
+          replacement: ${{ steps.environment_values.outputs.api-url }}
+
+      - name: Deploy artifact
+        uses: ./.github/actions/aws-s3-artifact-transfer
+        with:
+          access-key-id: ${{ secrets.APP_S3_ACCESS_KEY_ID_PRODUCTION }}
+          secret-access-key: ${{ secrets.APP_S3_SECRET_ACCESS_KEY_PRODUCTION }}
+          region: ${{ secrets.ARTIFACT_REGION }}
+          source-path: '${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}'
+          target-path: s3://${{ env.APP_S3_BUCKET_NAME_PRODUCTION }}
+          transfer-directory: true
+
+      - name: Check deployment
+        uses: ./.github/actions/check-deployment
+        with:
+          app-url: ${{ env.APP_URL_PRODUCTION }}
+
+      - name: Fail
+        run: |
+          echo "ERROR: Lets fail that thing"
+          exit 1
+
+      - name: Label issue on failure
+        uses: actions/github-script@v6
+        if: ${{ failure() }}
+        with:
+          result-encoding: string
+          script: |
+            const issue = await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: parseInt( ${{ steps.resolved_issue_number.outputs.issue-number }} ),
+                labels: ['deployment:failed:${{ steps.environment_values.outputs.environment-name }}']
+            })
+
+      - name: Post successful deployed
+        uses: actions/github-script@v6
+        if: ${{ success() }}
+        with:
+          result-encoding: string
+          script: |
+            const { default: createCommentWithPayload } = await import('${{ github.workspace }}/.github/src/create-comment-with-payload.js')
+
+            const issueMessage = [
+              '**${{ steps.environment_values.outputs.environment-name }} environment successful deployed**',
+              '[${{ env.APP_URL_PRODUCTION }}](${{ env.APP_URL_PRODUCTION }})'
+            ].join('\r\n')
+
+            await createCommentWithPayload(
+                {github, config: { owner: context.repo.owner, repo: context.repo.repo }},
+                ${{ steps.resolved_issue_number.outputs.issue-number }},
+                issueMessage,
+                {},
+            )
+
+      - name: Cleanup labels
+        uses: actions/github-script@v6
+        if: ${{ success() }}
+        with:
+          result-encoding: string
+          script: |
+            try {
+              await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: parseInt( ${{ steps.resolved_issue_number.outputs.issue-number }} ),
+                  name: 'deployment:failed:${{ steps.environment_values.outputs.environment-name }}'
+              })
+            } catch (e) {
+                console.log('label was already removed')
+            }
+
+      - name: Tag artifact
+        uses: ./.github/actions/add-environment-datetime-tag
+        if: ${{ always() }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          environment-name: ${{ env.TAG_NAME_PRODUCTION }}
+          datetime: ${{ steps.environment_values.outputs.current-datetime }}
