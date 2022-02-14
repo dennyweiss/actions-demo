@@ -23,6 +23,8 @@ env:
   API_URL_PRODUCTION: https://api.ufostart.com
   APP_URL_PRODUCTION: https://space-control-center.ufostart.com
   TAG_NAME_PRODUCTION: production
+  APP_S3_ACCESS_KEY_ID_PRODUCTION: ''
+  APP_S3_ACCESS_SECRET_ACCESS_KEY_PRODUCTION: ''
   APP_S3_BUCKET_NAME_PRODUCTION: space-control-panel.ufostart.com
 
   API_URL_STAGING: https://staging.api.ufostart.com
@@ -140,7 +142,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const { default: resolveLastCommentsData } = await import('${{ github.workspace }}/.github/src/resolve-last-comments-data.js')
+            const { resolveLastCommentsData } = await import('${{ github.workspace }}/.github/src/resolve-last-comments-data.js')
             
             const resolvedLastCommentsData = await resolveLastCommentsData(
               {github, config: { owner: context.repo.owner, repo: context.repo.repo }},
