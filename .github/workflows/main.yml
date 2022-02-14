@@ -63,6 +63,10 @@ jobs:
           echo "GITHUB_RUN_ID:  '$GITHUB_RUN_ID'"
           echo "GITHUB_SHA:     '$GITHUB_SHA'"
 
+      - name: Inspect filesystem
+        run: |
+          tree -a -L 2
+
       - name: Resolve issue number
         id: resolved_issue_number
         uses: ./.github/actions/resolve-issue-number
@@ -86,6 +90,10 @@ jobs:
           issue-number: ${{ steps.resolved_issue_number.outputs.issue-number }}
           sha: ${{ github.sha }}
           built-at: ${{ steps.environment_values.outputs.current-datetime }}
+
+      - name: Inspect filesystem
+        run: |
+          tree -a -L 2
 
       - name: Zip artifact
         uses: ./.github/actions/package-artifact
@@ -180,12 +188,20 @@ jobs:
           sha: ${{ github.sha }}
           bucket-name: ${{ env.ARTIFACT_BUCKET_NAME }}
 
+      - name: Inspect filesystem
+        run: |
+          tree -a -L 2
+
       - name: Unzip artifact
         uses: ./.github/actions/package-artifact
         with:
           action: 'unzip'
           source: ./${{ steps.resolved_artifact.outputs.filename }}
           target: '${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}'
+
+      - name: Inspect filesystem
+        run: |
+          tree -a -L 2
 
       - name: Update version file
         uses: ./.github/actions/update-version
@@ -220,7 +236,7 @@ jobs:
         if: failure()
         run: |
           echo 'ERROR: I run only on failure'
-          tree -a -L 2
+          tree -a -L 3
 
       - name: Tag artifact
         uses: ./.github/actions/add-environment-datetime-tag
