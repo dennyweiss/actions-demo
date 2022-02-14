@@ -214,7 +214,7 @@ jobs:
       - name: Check deployment
         uses: ./.github/actions/check-deployment
         with:
-          app-url: ${{ APP_URL_STAGING }}
+          app-url: ${{ env.APP_URL_STAGING }}
 
       # - name: Tag issue with failed deployment
       - name: Label issue on failure
