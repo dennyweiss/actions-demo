@@ -243,10 +243,10 @@ jobs:
 
       - name: Label issue on failure
         uses: actions/github-script@v6
+        if: failure()
         with:
           result-encoding: string
           script: |
-            console.log('${{ failure() }}')
             const issue = await github.rest.issues.addLabels({
                 owner: issueConfig.owner,
                 repo: issueConfig.repo,
