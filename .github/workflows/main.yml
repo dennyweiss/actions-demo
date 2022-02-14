@@ -23,10 +23,12 @@ env:
   API_URL_PRODUCTION: https://api.ufostart.com
   APP_URL_PRODUCTION: https://space-control-center.ufostart.com
   TAG_NAME_PRODUCTION: production
+  APP_S3_BUCKET_NAME_PRODUCTION: space-control-panel.ufostart.com
 
   API_URL_STAGING: https://staging.api.ufostart.com
   APP_URL_STAGING: https://staging.space-control-center.ufostart.com
   TAG_NAME_STAGING: staging
+  APP_S3_BUCKET_NAME_STAGING: staging-space-control-panel.ufostart.com
 
 jobs:
   build_and_test:
@@ -88,17 +90,7 @@ jobs:
           region: ${{ secrets.ARTIFACT_REGION }}
           source-path: './${{ steps.resolved_artifact.outputs.filename }}'
           target-path: '${{ steps.resolved_artifact.outputs.s3-url }}'
-
-      - name: Create artifact comment
-        uses: actions/github-script@v6
-        with:
-          script: |
-            await github.rest.issues.createComment({
-              issue_number: parseInt('${{ steps.resolved_issue_number.outputs.issue-number }}'),
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: "Artifact created: ${{ steps.resolved_artifact.outputs.s3-url }}"
-            })
+          transfer-directory: false
 
       - name: Create artifact comment
         id: create_artifact_comment
@@ -106,10 +98,16 @@ jobs:
         with:
           script: |
             const { default: createCommentWithPayload } = await import('${{ github.workspace }}/.github/src/create-comment-with-payload.js')
-            const issueMessage = `Test Comment with payload`
+
+            const issueMessage = [
+              '**Artifact created** ${{ steps.resolved_artifact.outputs.filename }}',
+              '                     ${{ steps.resolved_artifact.outputs.s3-url }}'
+            ].join('\r\n')
+
             const issueData = {
                 artifactUrl: '${{ steps.resolved_artifact.outputs.s3-url }}',
             }
+
             await createCommentWithPayload(
                 {github, config: { owner: context.repo.owner, repo: context.repo.repo }},
                 ${{ steps.resolved_issue_number.outputs.issue-number }},
@@ -117,57 +115,83 @@ jobs:
                 issueData,
             )
 
-#  deploy_to_staging:
-#    name: Deploy UI to staging
-#    runs-on: ubuntu-latest
-#    if: github.event_name == 'push'
-#    needs: [build_and_test]
-#    environment:
-#      name: staging
-#      url: ${{ steps.environment_values.outputs.app-url }}
-#    steps:
-#      - uses: actions/checkout@v2
-#
-#      - name: Prepare environment values
-#        id: environment_values
-#        uses: ./.github/actions/define-environment-values
-#        with:
-#          api-url: ${{ env.API_URL_STAGING }}
-#          app-url: ${{ env.APP_URL_STAGING }}
-#
-#      - name: Fetch UI build artifact
-#        uses: actions/download-artifact@v2
-#        with:
-#          name: ${{ env.ARTIFACT_NAME }}
-#          path: ${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}
-#
-#      - name: Define api url
-#        uses: ./.github/actions/replace-string-in-file
-#        with:
-#          filepath: ${{ env.DEFAULT_API_URL_PLACEHOLDER_FILEPATH }}
-#          search: ${{ env.DEFAULT_API_URL_PLACEHOLDER }}
-#          replacement: ${{ steps.environment_values.outputs.api-url }}
-#
-#      - name: Deploy artifact
-#        run: |
-#          cat '${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}/artifact.txt'
-#
-#      - name: Tag artifact
-#        uses: ./.github/actions/add-environment-datetime-tag
-#        if: always()
-#        with:
-#          github-token: ${{ secrets.GITHUB_TOKEN }}
-#          environment-name: ${{ env.TAG_NAME_STAGING }}
-#          datetime: ${{ steps.environment_values.outputs.current-datetime }}
-#
+
+  deploy_to_staging:
+    name: Deploy UI to staging
+    runs-on: ubuntu-latest
+    #if: github.event_name == 'push'
+    needs: [build_and_test]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Prepare environment values
+        id: environment_values
+        uses: ./.github/actions/define-environment-values
+        with:
+          api-url: ${{ env.API_URL_STAGING }}
+          app-url: ${{ env.APP_URL_STAGING }}
+
+      - name: Resolve issue number
+        id: resolved_issue_number
+        uses: ./.github/actions/resolve-issue-number
+
+      - name: Resolve current artifact url
+        id: resolved_artifact_url
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { default: resolveLastCommentsData } = await import('${{ github.workspace }}/.github/src/resolve-last-comments-data.js')
+            
+            const resolvedLastCommentsData = await resolveLastCommentsData(
+              {github, config: { owner: context.repo.owner, repo: context.repo.repo }},
+              ${{ steps.resolved_issue_number.outputs.issue-number }}
+            )
+            
+            return resolvedLastCommentsData?.artifactUrl ?? null
+
+      - name: Fetch artifact to S3 artifact store
+        uses: ./.github/actions/aws-s3-artifact-transfer
+        with:
+          access-key-id: ${{ secrets.ARTIFACT_ACCESS_KEY_ID }}
+          secret-access-key: ${{ secrets.ARTIFACT_SECRET_ACCESS_KEY }}
+          region: ${{ secrets.ARTIFACT_REGION }}
+          source-path: '${{ steps.resolved_artifact_url.outputs.result }}'
+          target-path: './${{ steps.resolved_artifact.outputs.filename }}'
+          transfer-directory: false
+
+      - name: Unzip artifact
+        uses: ./.github/actions/package-artifact
+        with:
+          action: 'unzip'
+          source: './${{ steps.resolved_artifact.outputs.filename }}'
+          target: '${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}'
+
+      - name: Deploy artifact
+        uses: ./.github/actions/aws-s3-artifact-transfer # @warn make us of `sync --delete` aws cli action
+        with:
+          access-key-id: ${{ secrets.ARTIFACT_ACCESS_KEY_ID }}
+          secret-access-key: ${{ secrets.ARTIFACT_SECRET_ACCESS_KEY }}
+          region: ${{ secrets.ARTIFACT_REGION }}
+          source-path: '${{ env.ARTIFACT_BUILD_TARGET_FILEPATH }}'
+          target-path: 's3://${{ env.APP_S3_BUCKET_NAME_STAGING }}'
+          transfer-directory: true
+
+      # - name: Check deployed ?
+      # - name: Tag issue with failed deployment
+
+      - name: Tag artifact
+        uses: ./.github/actions/add-environment-datetime-tag
+        if: always()
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          environment-name: ${{ env.TAG_NAME_STAGING }}
+          datetime: ${{ steps.environment_values.outputs.current-datetime }}
+
 #  deploy_to_production:
 #    name: Deploy UI to production
 #    runs-on: ubuntu-latest
 #    if: github.event_name == 'push'
 #    needs: [build_and_test,deploy_to_staging]
-#    environment:
-#      name: production
-#      url: ${{ steps.environment_values.outputs.app-url }}
 #    steps:
 #      - uses: actions/checkout@v2
 #
