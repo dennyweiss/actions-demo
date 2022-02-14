@@ -12,6 +12,7 @@ export default class IssueCommentRepository {
             owner: this.#config.owner,
             repo: this.#config.repo,
             issue_number: parseInt(issueNumber),
+            per_page: 1000,
         })
 
         let commentsList = comments.data
