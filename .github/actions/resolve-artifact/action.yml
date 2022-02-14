@@ -31,4 +31,4 @@
           script: |
             const issueNumber = process.env.ISSUE_NUMBER
             const sha = process.env.SHA
-            return `artifact-${issueNumber}-${sha}.zip`
+            return `artifact-space-control-panel-ui-${issueNumber}-${sha}.tar.gz`
